@@ -1,0 +1,484 @@
+{
+ "_说明": "人物对照表：同一个人在 GitHub、Slack、后台、HubSpot 里的账号。表里没有的账号，生成时会自动登记为「未核对」的人，不会丢事件。只放已有依据的对应，拿不准的不要写。",
+ "people": [
+  {
+   "id": "liwei",
+   "name": "Liwei Breslin",
+   "short": "Liwei",
+   "kind": "human",
+   "color": "hsl(12 82% 68%)",
+   "slack": [
+    "Liwei.Breslin"
+   ],
+   "femini": [
+    "Liwei.Breslin"
+   ],
+   "github": [],
+   "hubspot": []
+  },
+  {
+   "id": "cathy",
+   "name": "Cathy Deng",
+   "short": "Cathy",
+   "kind": "human",
+   "color": "hsl(330 76% 72%)",
+   "slack": [
+    "Cathy Deng"
+   ],
+   "femini": [],
+   "github": [],
+   "hubspot": []
+  },
+  {
+   "id": "ara",
+   "name": "Ara Tolosa",
+   "short": "Ara",
+   "kind": "human",
+   "color": "hsl(190 72% 62%)",
+   "slack": [
+    "Ara Tolosa"
+   ],
+   "femini": [],
+   "github": [],
+   "hubspot": []
+  },
+  {
+   "id": "alyssa",
+   "name": "Alyssa Wu",
+   "short": "Alyssa",
+   "kind": "human",
+   "color": "hsl(272 70% 75%)",
+   "slack": [
+    "Alyssa Wu"
+   ],
+   "femini": [],
+   "github": [
+    "Alyssaxw"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "yihan",
+   "name": "Yi Han",
+   "short": "Yi Han",
+   "kind": "human",
+   "color": "hsl(150 56% 62%)",
+   "slack": [
+    "Yi Han"
+   ],
+   "femini": [],
+   "github": [
+    "yihan1211"
+   ],
+   "hubspot": [
+    "Yi Han"
+   ]
+  },
+  {
+   "id": "clark",
+   "name": "Clark Cao",
+   "short": "Clark",
+   "kind": "human",
+   "color": "hsl(215 82% 72%)",
+   "slack": [
+    "Clark Cao"
+   ],
+   "femini": [],
+   "github": [
+    "caok"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "holly",
+   "name": "Holly",
+   "short": "Holly",
+   "kind": "human",
+   "color": "hsl(96 56% 62%)",
+   "slack": [],
+   "femini": [],
+   "github": [
+    "Hollyisavailable"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "circle",
+   "name": "Circle",
+   "short": "Circle",
+   "kind": "human",
+   "color": "hsl(170 56% 58%)",
+   "slack": [],
+   "femini": [],
+   "github": [
+    "CircleSoar"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "roofeel",
+   "name": "Roofeel",
+   "short": "Roofeel",
+   "kind": "human",
+   "color": "hsl(240 66% 79%)",
+   "slack": [
+    "Roofeel"
+   ],
+   "femini": [],
+   "github": [
+    "roofeel"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "summer",
+   "name": "Summer Wu",
+   "short": "Summer",
+   "kind": "human",
+   "color": "hsl(350 82% 72%)",
+   "slack": [
+    "Summer Wu"
+   ],
+   "femini": [],
+   "github": [
+    "summerwu01"
+   ],
+   "hubspot": [
+    "summer wu"
+   ]
+  },
+  {
+   "id": "mandy",
+   "name": "Mandy",
+   "short": "Mandy",
+   "kind": "human",
+   "color": "hsl(300 52% 73%)",
+   "slack": [],
+   "femini": [],
+   "github": [
+    "mandy-feedmob"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "lunar",
+   "name": "Lunar",
+   "short": "Lunar",
+   "kind": "human",
+   "color": "hsl(135 36% 67%)",
+   "slack": [
+    "Lunar"
+   ],
+   "femini": [],
+   "github": [
+    "Lunar-feedmob"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "jason",
+   "name": "Jason Hou",
+   "short": "Jason",
+   "kind": "human",
+   "color": "hsl(28 60% 70%)",
+   "slack": [
+    "Jason hou"
+   ],
+   "femini": [],
+   "github": [
+    "houdl"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "windy",
+   "name": "Windy",
+   "short": "Windy",
+   "kind": "human",
+   "color": "hsl(52 60% 70%)",
+   "slack": [
+    "Windy"
+   ],
+   "femini": [],
+   "github": [
+    "windy-freedom"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "steven",
+   "name": "Steven Wu",
+   "short": "Steven",
+   "kind": "human",
+   "color": "hsl(76 60% 70%)",
+   "slack": [
+    "Steven Wu"
+   ],
+   "femini": [],
+   "github": [
+    "springwq"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "tony",
+   "name": "Tony",
+   "short": "Tony",
+   "kind": "human",
+   "color": "hsl(118 60% 70%)",
+   "slack": [
+    "tony"
+   ],
+   "femini": [],
+   "github": [
+    "toller892"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "chin",
+   "name": "Chin Jin",
+   "short": "Chin",
+   "kind": "human",
+   "color": "hsl(160 60% 70%)",
+   "slack": [
+    "Chin Jin"
+   ],
+   "femini": [],
+   "github": [
+    "fmb-chin"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "bran",
+   "name": "Bran Liang",
+   "short": "Bran",
+   "kind": "human",
+   "color": "hsl(200 60% 70%)",
+   "slack": [
+    "bran liang"
+   ],
+   "femini": [],
+   "github": [
+    "BranLiang"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "ian",
+   "name": "Ian Xiong",
+   "short": "Ian",
+   "kind": "human",
+   "color": "hsl(230 60% 70%)",
+   "slack": [
+    "Ian Xiong"
+   ],
+   "femini": [],
+   "github": [
+    "iannono"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "rao",
+   "name": "Rao Fu",
+   "short": "Rao",
+   "kind": "human",
+   "color": "hsl(260 60% 70%)",
+   "slack": [
+    "Rao Fu"
+   ],
+   "femini": [],
+   "github": [
+    "furao517"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "richard",
+   "name": "Richard Hao",
+   "short": "Richard",
+   "kind": "human",
+   "color": "hsl(285 60% 70%)",
+   "slack": [],
+   "femini": [],
+   "github": [
+    "0xRichardH"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "evan",
+   "name": "Evan Yang",
+   "short": "Evan",
+   "kind": "human",
+   "color": "hsl(315 60% 70%)",
+   "slack": [],
+   "femini": [],
+   "github": [
+    "yuwanpai2004-create"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "kaiji",
+   "name": "Kaiji",
+   "short": "Kaiji",
+   "kind": "human",
+   "color": "hsl(335 60% 70%)",
+   "slack": [],
+   "femini": [],
+   "github": [
+    "kaiji95"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "leo",
+   "name": "Leo Liu",
+   "short": "Leo",
+   "kind": "human",
+   "color": "hsl(350 60% 70%)",
+   "slack": [
+    "Leo Liu"
+   ],
+   "femini": [],
+   "github": [
+    "leoliu-png"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "michelle",
+   "name": "Michelle Ma",
+   "short": "Michelle",
+   "kind": "human",
+   "color": "hsl(20 60% 70%)",
+   "slack": [
+    "Michelle Ma"
+   ],
+   "femini": [],
+   "github": [
+    "michelle017"
+   ],
+   "hubspot": []
+  },
+  {
+   "id": "jericho",
+   "name": "Jericho Vhince Brimon",
+   "short": "Jericho",
+   "kind": "human",
+   "color": "hsl(45 60% 70%)",
+   "slack": [
+    "Jericho Vhince Brimon"
+   ],
+   "femini": [],
+   "github": [],
+   "hubspot": [],
+   "email": [
+    "Vhince Brimon"
+   ]
+  },
+  {
+   "id": "glenn",
+   "name": "Glenn Maxime Obnamia",
+   "short": "Glenn",
+   "kind": "human",
+   "color": "hsl(65 60% 70%)",
+   "slack": [
+    "Glenn Maxime Obnamia"
+   ],
+   "femini": [],
+   "github": [],
+   "hubspot": [
+    "Glenn Obnamia"
+   ]
+  },
+  {
+   "id": "dispatch",
+   "name": "派单机器人",
+   "short": "派单",
+   "kind": "bot",
+   "color": "hsl(220 22% 66%)",
+   "slack": [],
+   "femini": [],
+   "github": [
+    "feedmob-deploy"
+   ],
+   "hubspot": [],
+   "label_zh": "派单机器人",
+   "name_en": "Assignment bot",
+   "short_en": "Dispatch",
+   "label_en": "Assignment bot"
+  },
+  {
+   "id": "feedai",
+   "name": "FeedAI 摘要机器人",
+   "short": "FeedAI",
+   "kind": "bot",
+   "color": "hsl(200 30% 64%)",
+   "slack": [],
+   "femini": [],
+   "github": [
+    "feedmob-qa"
+   ],
+   "hubspot": [],
+   "label_zh": "FeedAI",
+   "name_en": "FeedAI summary bot",
+   "short_en": "FeedAI",
+   "label_en": "FeedAI"
+  },
+  {
+   "id": "delivery",
+   "name": "Delivery Manager",
+   "short": "播报",
+   "kind": "bot",
+   "color": "hsl(180 28% 62%)",
+   "slack": [
+    "Delivery Manager"
+   ],
+   "femini": [],
+   "github": [],
+   "hubspot": [],
+   "label_zh": "Delivery Manager",
+   "name_en": "Delivery Manager",
+   "short_en": "Alerts",
+   "label_en": "Delivery Manager"
+  },
+  {
+   "id": "slackbot",
+   "name": "Slack 机器人",
+   "short": "机器人",
+   "kind": "bot",
+   "color": "hsl(210 18% 60%)",
+   "slack": [
+    "Unknown"
+   ],
+   "femini": [],
+   "github": [],
+   "hubspot": [],
+   "label_zh": "Slack 机器人",
+   "name_en": "Slack bot",
+   "short_en": "Bot",
+   "label_en": "Slack bot"
+  },
+  {
+   "id": "hubspot",
+   "name": "HubSpot 工单",
+   "short": "HubSpot",
+   "kind": "bot",
+   "color": "hsl(25 90% 66%)",
+   "slack": [],
+   "femini": [],
+   "github": [],
+   "hubspot": [
+    "__system__"
+   ],
+   "label_zh": "HubSpot",
+   "name_en": "HubSpot ticket",
+   "short_en": "HubSpot",
+   "label_en": "HubSpot"
+  }
+ ]
+}

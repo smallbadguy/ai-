@@ -1,0 +1,11 @@
+[Unit]
+Description=AI-2734 campaign replay daily refresh
+After=network-online.target
+
+[Service]
+Type=oneshot
+TimeoutStartSec=3600
+User=ubuntu
+WorkingDirectory=/home/ubuntu/ai-2734-replay/app
+Environment=REPLAY_SECRETS=/home/ubuntu/ai-2734-replay/secrets
+ExecStart=/usr/bin/python3 service/refresh.py

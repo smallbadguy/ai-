@@ -1,0 +1,408 @@
+{
+ "version": 1,
+ "note": "Spend 录入异常字典的种子（v1）：全部来自 Slack 镜像里的真实案例，例子的原话逐字取自 raw/slack。线上学到的内容在 knowledge/spend_dictionary.json，不覆盖本文件。",
+ "categories": {
+  "config": {"zh": "配置错误", "en": "Misconfiguration"},
+  "upstream": {"zh": "上游 / 外部", "en": "Upstream / external"},
+  "system": {"zh": "系统缺陷", "en": "System defect"},
+  "manual": {"zh": "人工操作", "en": "Manual operation"}
+ },
+ "entries": [
+  {
+   "id": "cfg.stale_margin",
+   "category": "config",
+   "name_zh": "利润率过期或没随计算方式更新",
+   "name_en": "Stale margin / margin not updated with the calculation",
+   "desc_zh": "gross 由 net/(1-利润率) 算出，利润率设置没跟上（改了又改回、合作方算法变了），导致 gross 偏高或偏低。",
+   "desc_en": "Gross is derived from net/(1-margin); the margin setting lagged behind (changed and reverted, or the partner's calculation changed), so gross is over- or under-stated.",
+   "signals": ["margin_mismatch"],
+   "alert_patterns": [],
+   "phrases": ["stale margin", "margin 不一致", "margin跟系统", "利润率不对", "gross 偏高", "gross is overstated", "overbilling"],
+   "needs": ["femini.proposed_changes", "femini.spend_metrics"],
+   "config_target": "click_url.margin",
+   "fix_zh": "把利润率改回应有的值，并按正确利润率重算受影响日期的 gross。",
+   "fix_en": "Set the margin to the intended value and recalculate gross for the affected dates.",
+   "owner_role": "AM / PA",
+   "examples": [
+    {"source": "slack", "channel": "#allypod-ai-testing", "ts": "2026-10-27T14:57:16Z", "who": "Cathy Deng",
+     "quote": "gross is still overstated by $1,193.17 on 10 Remerge click URLs (Oct 5–11 stale margins)", "scope": {"links": [], "date": "2026-10-11"}},
+    {"source": "slack", "channel": "#allypod_devs", "ts": "2026-10-13T10:05:02Z", "who": "Summer Wu",
+     "quote": "你这边手动修改spend但是margin跟系统的30%不一致，除了这个URL其他也有这样的情况", "scope": {"links": ["23753"], "date": "2026-10-13"}}
+   ]
+  },
+  {
+   "id": "cfg.spend_formula",
+   "category": "config",
+   "name_zh": "spend 计算公式 / 系数 / 来源不对",
+   "name_en": "Wrong spend formula, factor or source",
+   "desc_zh": "spend request 里的公式、系数（如 net = 合作方 × 95%）或取数来源不对，或合作方改了算法而配置没跟上。",
+   "desc_en": "The spend request formula, factor (e.g. net = partner cost × 95%) or data source is wrong, or the partner changed its calculation and the configuration did not follow.",
+   "signals": ["net_cost_ratio_shift", "gross_rate_mismatch", "net_rate_mismatch"],
+   "alert_patterns": [],
+   "phrases": ["计算方式", "spend request", "公式", "x 0.95", "formula", "net spend 不对"],
+   "needs": ["femini.spend_requests", "femini.spend_metrics"],
+   "config_target": "spend_request.formula",
+   "fix_zh": "核对并更新 spend request 的公式和来源，按新公式重算历史 spend。",
+   "fix_en": "Review and update the spend request formula and source, then recalculate historical spend.",
+   "owner_role": "PA / 开发",
+   "examples": [
+    {"source": "slack", "channel": "#allypod_devs", "ts": "2026-10-06T01:08:46Z", "who": "Summer Wu",
+     "quote": "net spend是不是还是按照remerge net spend x 0.95?", "scope": {"links": [], "date": "2026-10-04"}},
+    {"source": "slack", "channel": "#allypod_devs", "ts": "2026-10-13T01:10:10Z", "who": "Summer Wu",
+     "quote": "remerge修改了spend计算方式", "scope": {"links": [], "date": "2026-10-11"}}
+   ]
+  },
+  {
+   "id": "cfg.spend_request_missing",
+   "category": "config",
+   "name_zh": "缺 spend request / 自动录入请求",
+   "name_en": "Missing spend request / automation request",
+   "desc_zh": "新链接没有 spend request 或自动录入请求，spend 没人录或没按规则录。",
+   "desc_en": "A link has no spend request or automation request, so spend is not entered or not entered by the rules.",
+   "signals": ["spend_missing"],
+   "alert_patterns": [],
+   "phrases": ["没有spend automation request", "没有ticket和request", "缺 spend request", "no spend request"],
+   "needs": ["femini.spend_requests"],
+   "config_target": "spend_request",
+   "fix_zh": "补建 spend request（公式、来源、利润率），并补录已经漏掉的日期。",
+   "fix_en": "Create the spend request (formula, source, margin) and backfill the missed dates.",
+   "owner_role": "PA",
+   "examples": [
+    {"source": "slack", "channel": "#allypod_devs", "ts": "2026-10-12T09:15:18Z", "who": "Michelle Ma",
+     "quote": "还没有spend automation request，我这边补了一条", "scope": {"links": [], "date": "2026-10-12"}}
+   ]
+  },
+  {
+   "id": "cfg.mapping_missing",
+   "category": "config",
+   "name_zh": "campaign mapping 缺失或没设自动化",
+   "name_en": "Campaign mapping missing or not automated",
+   "desc_zh": "合作方 / MMP 的 campaign 没映射到 click URL（no_campaign_mapping），或映射了但没开自动录入（mapped_but_not_automated），有 spend 却没进系统。",
+   "desc_en": "The partner/MMP campaign is not mapped to a click URL (no_campaign_mapping), or is mapped but not automated (mapped_but_not_automated); spend exists but never reaches the system.",
+   "signals": ["spend_missing", "alert_hit"],
+   "alert_patterns": ["no_campaign_mapping", "mapped_but_not_automated", "missing mapping", "missing: campaign_id", "存在spend，但是没有mapping"],
+   "phrases": ["mapping", "匹配失败", "没有mapping", "映射", "unmapped"],
+   "needs": ["femini.partner_report_rows", "slack.alerts"],
+   "config_target": "campaign_mapping",
+   "fix_zh": "补上 campaign mapping 并打开自动录入，补录漏掉的日期。",
+   "fix_en": "Add the campaign mapping, enable automation and backfill the missed dates.",
+   "owner_role": "PA",
+   "examples": [
+    {"source": "slack", "channel": "#mighty-team", "ts": "2026-10-11T10:00:56Z", "who": "FeedmobWorkerNg",
+     "quote": "Remerge mapped_but_not_automated: 2; Kayzen no_campaign_mapping: 4", "scope": {"links": [], "date": "2026-10-10"}},
+    {"source": "slack", "channel": "#mighty-team", "ts": "2026-10-15T07:55:02Z", "who": "FeedmobClientReports",
+     "quote": "skipped Realtor AppsFlyer Spend Email rows with missing mapping date: 2026-10-14, click_url_id: 19643", "scope": {"links": ["19643"], "date": "2026-10-14"}}
+   ]
+  },
+  {
+   "id": "cfg.paused_link_job_running",
+   "category": "config",
+   "name_zh": "链接已暂停或已无数据，spend 任务还在自动录入",
+   "name_en": "Link paused or without data, but the spend job keeps entering spend",
+   "desc_zh": "click URL 已经暂停（或合作方早已没有数据），但自动录入任务没停，MMP 有零星数据就继续录 gross，net 为 0，造成只有 gross 的录入。",
+   "desc_en": "The click URL was paused (or the partner stopped reporting), but the automated spend job kept running; stray MMP events keep producing gross with zero net.",
+   "signals": ["spend_when_paused"],
+   "alert_patterns": ["只录入了Gross Spend"],
+   "phrases": ["pause了", "暂停", "job每日还在执行", "spend job一直在跑", "是否可以pause", "自动化录入可暂停", "paused but spend"],
+   "needs": ["femini.proposed_changes", "femini.spend_metrics"],
+   "config_target": "click_url.state + spend_job",
+   "fix_zh": "停掉该链接的自动录入任务，并清理暂停后录入的 spend。",
+   "fix_en": "Stop the link's automated spend job and clean up spend entered after the pause.",
+   "owner_role": "PA / 开发",
+   "examples": [
+    {"source": "slack", "channel": "#allypod_devs", "ts": "2026-10-08T12:41:20Z", "who": "Mandy Wang",
+     "quote": "click url 18894 2026-04-10 pause了，但 CreateChimeSamsungSpendJob每日还在执行，AppsFlyer有数据，所以有录入gross", "scope": {"links": ["18894"], "date": "2026-10-06"}},
+    {"source": "slack", "channel": "#allypod_devs", "ts": "2026-10-21T07:19:37Z", "who": "Summer Wu",
+     "quote": "从9月份开始就没有数据，但是spend job一直在跑，是否可以pause？", "scope": {"links": ["23958"], "date": "2026-10-20"}}
+   ]
+  },
+  {
+   "id": "cfg.wrong_click_url",
+   "category": "config",
+   "name_zh": "spend 录到了错误的 click URL",
+   "name_en": "Spend entered under the wrong click URL",
+   "desc_zh": "报告里 campaign 没有区分（iOS / 安卓 / CTV 混在一起，或一份报告对多条链接），spend 被录到别的链接下。",
+   "desc_en": "The report does not separate campaigns (iOS / Android / CTV mixed, or one report for several links), so spend lands on another link.",
+   "signals": ["spend_jump", "net_cost_ratio_shift"],
+   "alert_patterns": [],
+   "phrases": ["录错", "录到", "录入到", "wrong url", "错的链接", "campaign ID和campaign name没有做区分"],
+   "needs": ["femini.spend_metrics", "femini.partner_report_rows"],
+   "config_target": "spend_entry.click_url",
+   "fix_zh": "把 spend 挪回正确的 click URL；让合作方报告按 campaign 拆开。",
+   "fix_en": "Move the spend to the correct click URL; ask the partner to split the report by campaign.",
+   "owner_role": "PA",
+   "examples": [
+    {"source": "slack", "channel": "#allypod_devs", "ts": "2026-10-27T13:13:54Z", "who": "Summer Wu",
+     "quote": "26号的spend就录错了", "scope": {"links": ["23505"], "date": "2026-10-26"}},
+    {"source": "slack", "channel": "#allypod_devs", "ts": "2026-10-08T01:04:30Z", "who": "Summer Wu",
+     "quote": "确定是录到这两个URL是吗？这两个URL不是CTV，一个iOS， 一个Android", "scope": {"links": [], "date": "2026-10-08"}}
+   ]
+  },
+  {
+   "id": "cfg.fee_missing",
+   "category": "config",
+   "name_zh": "费用项遗漏或归属错",
+   "name_en": "Fee missing or attributed to the wrong line",
+   "desc_zh": "平台费、数据中心费、makegood 等额外费用没并进每日 spend，或记到了别的 campaign。",
+   "desc_en": "Extra fees (platform, data-centre, makegood) are not added to daily spend, or are booked under another campaign.",
+   "signals": ["net_cost_ratio_shift"],
+   "alert_patterns": [],
+   "phrases": ["fee", "费用", "data center fee", "makegood", "invoice discrepancy", "发票差异"],
+   "needs": ["femini.monthly_adjustments", "femini.spend_requests"],
+   "config_target": "spend_request.fees",
+   "fix_zh": "把费用按约定方式并入每日 net spend（或单列），补齐历史月份。",
+   "fix_en": "Add the fee to daily net spend as agreed (or as a separate line) and backfill past months.",
+   "owner_role": "AM / PA",
+   "examples": [
+    {"source": "slack", "channel": "#binance", "ts": "2026-10-22T17:29:08Z", "who": "Van Ly",
+     "quote": "Since the APAC data center fee wasn’t included in our Sep net spend, there’s still a $1,500 discrepancy between the Sep invoice and our system.", "scope": {"links": [], "date": "2026-09-30"}}
+   ]
+  },
+  {
+   "id": "up.api_empty",
+   "category": "upstream",
+   "name_zh": "合作方 / MMP 接口取数失败或返回空",
+   "name_en": "Partner / MMP API failed or returned empty",
+   "desc_zh": "自动录入依赖的接口报错、超时或返回空（甚至 200 但没数据），当天 spend 没录或录成 0。",
+   "desc_en": "The API behind automated entry errored, timed out or returned nothing (even HTTP 200 with no data), so the day's spend is missing or zero.",
+   "signals": ["spend_missing", "zero_with_delivery", "alert_hit"],
+   "alert_patterns": ["数据获取失败", "数据失败", "返回 ?error", "数据为空", "Connection reset", "reported zero impressions", "Direct Spend was not created", "there is no data from", "获取 Report Id 失败"],
+   "phrases": ["api", "接口", "没取到", "数据为空", "spend 为 0", "missing spend"],
+   "needs": ["slack.alerts", "femini.spend_metrics"],
+   "config_target": "upstream.api",
+   "fix_zh": "等接口恢复后重跑任务或手工补录，必要时联系合作方。",
+   "fix_en": "Re-run the job once the API recovers or backfill manually; contact the partner if needed.",
+   "owner_role": "PA / 开发",
+   "examples": [
+    {"source": "slack", "channel": "#mighty-team", "ts": "2026-07-29T01:31:03Z", "who": "FeedmobClientReports",
+     "quote": "error: Applovin Api code返回200,但spend数据为空", "scope": {"links": [], "date": "2026-07-27"}},
+    {"source": "slack", "channel": "#star-team", "ts": "2026-08-24T06:40:01Z", "who": "FeedmobWorkerNg",
+     "quote": "Samsung DSP reported zero impressions for 2026-08-23. Direct Spend was not created", "scope": {"links": [], "date": "2026-08-23"}}
+   ]
+  },
+  {
+   "id": "up.report_missing",
+   "category": "upstream",
+   "name_zh": "合作方报告缺失或格式不对",
+   "name_en": "Partner report missing or malformed",
+   "desc_zh": "靠邮件 / 表格报告录入的合作方没发当天报告，或报告只有总区间、没有当天数据，无法录入。",
+   "desc_en": "A partner that reports by email or sheet did not send the day's report, or the report only has a total range without daily values.",
+   "signals": ["spend_missing"],
+   "alert_patterns": [],
+   "phrases": ["missing the .* spend report", "没有收到报告", "report time range", "无法录入spend", "没有看到.*邮件", "report 没到"],
+   "needs": ["slack.messages", "email"],
+   "config_target": "upstream.report",
+   "fix_zh": "联系合作方补发报告，收到后补录并刷新 tracker。",
+   "fix_en": "Ask the partner to resend the report, then backfill and refresh the tracker.",
+   "owner_role": "AM / PA",
+   "examples": [
+    {"source": "slack", "channel": "#chime", "ts": "2026-10-06T09:58:39Z", "who": "Summer Wu",
+     "quote": "We are missing the Chime &lt;&gt; LG spend report for 10/05, will impact the spend input", "scope": {"links": [], "date": "2026-10-05"}},
+    {"source": "slack", "channel": "#allypod_devs", "ts": "2026-10-09T09:07:28Z", "who": "Summer Wu",
+     "quote": "并没有10/08具体的spend是多少，无法录入spend以及更新tracker", "scope": {"links": [], "date": "2026-10-08"}}
+   ]
+  },
+  {
+   "id": "up.partner_delivery_incident",
+   "category": "upstream",
+   "name_zh": "合作方投放事故",
+   "name_en": "Partner delivery incident",
+   "desc_zh": "合作方误开（accidental unpause）、超投或停投没通知，产生了不该计的 spend，需要清零或抵扣。",
+   "desc_en": "The partner unpaused by mistake, over-delivered or stopped without notice, producing spend that must be zeroed or credited.",
+   "signals": ["spend_jump", "spend_when_paused"],
+   "alert_patterns": [],
+   "phrases": ["accidental unpause", "zero'ing out", "credit", "误投", "超投"],
+   "needs": ["slack.messages", "femini.spend_metrics"],
+   "config_target": "upstream.delivery",
+   "fix_zh": "按合作方确认把受影响日期的 net spend 清零或抵扣。",
+   "fix_en": "Zero out or credit the affected dates' net spend as confirmed by the partner.",
+   "owner_role": "AM",
+   "examples": [
+    {"source": "slack", "channel": "#capital-one-shopping", "ts": "2026-10-26T18:51:44Z", "who": "Dan Krugh",
+     "quote": "They confirmed it was an accidental unpause on their end, and have offered to credit for 10/20-10/22.", "scope": {"links": [], "date": "2026-10-21"}}
+   ]
+  },
+  {
+   "id": "up.af_upload_not_shown",
+   "category": "upstream",
+   "name_zh": "spend 上传到 AppsFlyer 后没显示",
+   "name_en": "Spend uploaded to AppsFlyer but not shown",
+   "desc_zh": "系统里 spend 正常，但上传 AF 失败或延迟（约 4 小时），AF 和后台对不上，需要重传。",
+   "desc_en": "Spend is correct in the system, but the AppsFlyer upload failed or lags (about 4 hours), so AF and Femini disagree until re-uploaded.",
+   "signals": [],
+   "alert_patterns": ["CheckAfSpendReportAfterUploadJob"],
+   "phrases": ["没有显示在AF", "re-upload", "重传", "补传", "AF 和 Femini", "discrepancy between AF and Femini"],
+   "needs": ["slack.messages"],
+   "config_target": "upstream.mmp_upload",
+   "fix_zh": "重新上传当天 spend 到 AF，并在 4 小时后复核。",
+   "fix_en": "Re-upload the day's spend to AF and re-check after about 4 hours.",
+   "owner_role": "PA",
+   "examples": [
+    {"source": "slack", "channel": "#allypod_devs", "ts": "2026-10-23T07:32:45Z", "who": "Summer Wu",
+     "quote": "23号今天早上我检查钱还是没有显示在AF，我又重新上传了21号的spend", "scope": {"links": [], "date": "2026-10-21"}},
+    {"source": "slack", "channel": "#chime", "ts": "2026-10-08T09:25:29Z", "who": "Summer Wu",
+     "quote": "There will be a discrepancy between AF and Femini now since it needs 4 hours for the spend to show in AF.", "scope": {"links": [], "date": "2026-10-06"}}
+   ]
+  },
+  {
+   "id": "sys.job_code_error",
+   "category": "system",
+   "name_zh": "录入任务代码异常",
+   "name_en": "Spend job code error",
+   "desc_zh": "自动录入任务本身报错（方法不存在、空指针等），当天 spend 没录。",
+   "desc_en": "The automated spend job itself crashed (missing method, nil error, etc.), so the day's spend was not entered.",
+   "signals": ["spend_missing", "alert_hit"],
+   "alert_patterns": ["NoMethodError", "undefined method", "NameError", "TypeError"],
+   "phrases": ["报错", "job 失败", "error", "bug"],
+   "needs": ["slack.alerts"],
+   "config_target": "system.spend_job",
+   "fix_zh": "修复任务代码后重跑受影响日期。",
+   "fix_en": "Fix the job code and re-run the affected dates.",
+   "owner_role": "开发",
+   "examples": [
+    {"source": "slack", "channel": "#mighty-team", "ts": "2026-09-13T12:12:45Z", "who": "FeedmobWorkerNg",
+     "quote": "undefined method `add_bid_shading_fee_to_spend'", "scope": {"links": [], "date": "2026-09-12"}}
+   ]
+  },
+  {
+   "id": "sys.sheet_data_error",
+   "category": "system",
+   "name_zh": "表格数据异常",
+   "name_en": "Spreadsheet data error",
+   "desc_zh": "靠 Google Sheet 录入的任务遇到重复键、格式不对等，整批失败。",
+   "desc_en": "A Google Sheet driven job hits duplicate keys or bad formats and the whole batch fails.",
+   "signals": ["spend_missing", "alert_hit"],
+   "alert_patterns": ["SheetDataError", "duplicate date"],
+   "phrases": ["sheet", "表格", "重复"],
+   "needs": ["slack.alerts"],
+   "config_target": "system.sheet",
+   "fix_zh": "修正表格里的重复或错误行后重跑任务。",
+   "fix_en": "Fix the duplicate or bad rows in the sheet and re-run the job.",
+   "owner_role": "PA",
+   "examples": [
+    {"source": "slack", "channel": "#star-team", "ts": "2026-08-04T06:02:14Z", "who": "FeedmobClientReports",
+     "quote": "SheetDataError: Google Sheet has duplicate date/store key", "scope": {"links": [], "date": "2026-08-03"}}
+   ]
+  },
+  {
+   "id": "man.manual_edit_inconsistent",
+   "category": "manual",
+   "name_zh": "手动改 spend 后其他地方没同步",
+   "name_en": "Manual spend edit not synced elsewhere",
+   "desc_zh": "有人手动改了 spend，但利润率、pacing 表或 AF 没跟着改，数字前后对不上。",
+   "desc_en": "Someone edited spend by hand, but the margin, the pacing sheet or AF were not updated, so numbers disagree.",
+   "signals": ["margin_mismatch"],
+   "alert_patterns": [],
+   "phrases": ["手动修改", "手动更新", "pacing 这边还没修改", "manual edit"],
+   "needs": ["slack.messages", "femini.spend_metrics"],
+   "config_target": "spend_entry.manual",
+   "fix_zh": "确认以哪份数据为准，统一更新系统、pacing 表和 AF。",
+   "fix_en": "Agree on the source of truth and update the system, pacing sheet and AF together.",
+   "owner_role": "PA / AM",
+   "examples": [
+    {"source": "slack", "channel": "#allypod_devs", "ts": "2026-10-13T01:10:10Z", "who": "Summer Wu",
+     "quote": "@Cathy Deng 手动更新了系统的钱，但是pacing 这边还没修改", "scope": {"links": [], "date": "2026-10-11"}}
+   ]
+  },
+  {
+   "id": "map.li_unmapped_new",
+   "category": "config",
+   "name_zh": "新 line item 没建 mapping，有 spend 没录入",
+   "name_en": "New line item without mapping; spend not entered",
+   "desc_zh": "DSP 上新加了 line item，没有映射到任何 click URL，系统告警有 spend 但没录入。",
+   "desc_en": "A new DSP line item is not mapped to any click URL; the system alerts that it has spend that was not entered.",
+   "signals": ["spend_missing", "alert_hit"],
+   "alert_patterns": ["新的line item", "有spend且没有录入"],
+   "phrases": ["line item 匹配失败", "line item 没录", "新的line item", "line item mapping"],
+   "needs": ["femini.partner_report_rows", "slack.alerts"],
+   "config_target": "campaign_mapping.line_item",
+   "fix_zh": "确认 line item 归属哪个活动，建 mapping（必要时新建链接）后补录。",
+   "fix_en": "Decide which campaign owns the line item, add the mapping (or a new link) and backfill.",
+   "owner_role": "PA / AM",
+   "examples": [
+    {"source": "slack", "channel": "#allypod_devs", "ts": "2026-08-19T06:58:40Z", "who": "Summer Wu",
+     "quote": "从14号开始系统告警Chime_CTV_US_CPM_Vizio_PMP_Freewheel 有新的line item 63有spend且没有录入", "scope": {"links": ["23837"], "date": "2026-08-14"}}
+   ]
+  },
+  {
+   "id": "map.li_wrong_url",
+   "category": "config",
+   "name_zh": "line item 的 spend 录到了别的 click URL 下",
+   "name_en": "Line item spend entered under another click URL",
+   "desc_zh": "line item 暂时挂在别的活动 / 链接下，spend 一并录了进去，之后再拆出来，前后数字对不上。",
+   "desc_en": "A line item was temporarily attached to another campaign/link and its spend was entered there, later moved out, leaving mismatched numbers.",
+   "signals": ["spend_jump", "net_cost_ratio_shift"],
+   "alert_patterns": [],
+   "phrases": ["line item的spend一起录入", "录在了", "挂在", "改回去"],
+   "needs": ["femini.spend_metrics", "slack.messages"],
+   "config_target": "campaign_mapping.line_item",
+   "fix_zh": "把 line item 的 spend 挪到正确的链接，并告知对账同事这几天的差异。",
+   "fix_en": "Move the line item's spend to the correct link and tell reconciliation about the affected days.",
+   "owner_role": "PA",
+   "examples": [
+    {"source": "slack", "channel": "#allypod_devs", "ts": "2026-08-19T06:58:40Z", "who": "Summer Wu",
+     "quote": "所以14-16号我把这个line item的spend一起录入在了23837下面", "scope": {"links": ["23837"], "date": "2026-08-15"}}
+   ]
+  },
+  {
+   "id": "map.li_mixed_campaign",
+   "category": "config",
+   "name_zh": "一个 DSP campaign 混跑多个链接的 line item",
+   "name_en": "One DSP campaign runs line items of several links",
+   "desc_zh": "合作方一个 campaign 下挂了属于多个 click URL 的 line item，按 campaign 录入时容易录错。",
+   "desc_en": "One partner campaign holds line items belonging to several click URLs, so entering by campaign easily goes wrong.",
+   "signals": ["spend_jump", "net_cost_ratio_shift"],
+   "alert_patterns": [],
+   "phrases": ["不仅跑了属于", "混其他的", "line item 混", "mixed line items"],
+   "needs": ["femini.partner_report_rows", "slack.messages"],
+   "config_target": "dsp.campaign_setup",
+   "fix_zh": "让一个 DSP campaign 只跑一个链接的 line item，或按 line item 级别映射。",
+   "fix_en": "Keep one link's line items per DSP campaign, or map at line item level.",
+   "owner_role": "AM / PA",
+   "examples": [
+    {"source": "slack", "channel": "#allypod_devs", "ts": "2026-10-15T12:00:57Z", "who": "Summer Wu",
+     "quote": "在这个campaign下不仅跑了属于24189的line item, 又跑了属于URL24305，24306的line item，这样导致spend录入的时候容易出错", "scope": {"links": ["24189", "24305", "24306"], "date": "2026-10-15"}}
+   ]
+  },
+  {
+   "id": "map.li_many_to_one",
+   "category": "config",
+   "name_zh": "多个 line item 对应一个 click URL，拆不开",
+   "name_en": "Many line items map to one click URL",
+   "desc_zh": "mapping 里多个 line item 指向同一个 click URL，按 line item 看会重复，click URL 下拆不出来。",
+   "desc_en": "Several line items map to the same click URL, so line-item views double count and the link cannot be split.",
+   "signals": [],
+   "alert_patterns": [],
+   "phrases": ["多个 line item", "对应一个 click url", "拆分不出来"],
+   "needs": ["femini.partner_report_rows"],
+   "config_target": "campaign_mapping.line_item",
+   "fix_zh": "按 adset / line item 重新设计映射，或拆分链接。",
+   "fix_en": "Redesign the mapping by adset / line item, or split the link.",
+   "owner_role": "开发 / PA",
+   "examples": [
+    {"source": "slack", "channel": "#allypod_devs", "ts": "2026-09-16T12:16:27Z", "who": "Steven Wu",
+     "quote": "Binance 的 Freewheel Campaign Mapping 存在多个 line item it 对应一个 click url 的 mapping", "scope": {"links": [], "date": "2026-09-16"}}
+   ]
+  },
+  {
+   "id": "map.li_creative_not_captured",
+   "category": "config",
+   "name_zh": "新增的 creative line item 没被抓取",
+   "name_en": "New creative line items not captured",
+   "desc_zh": "合作方新加了 creative / line item，取数只认旧的，新的曝光和 spend 没进系统。",
+   "desc_en": "The partner added creatives / line items, but the import only knows the old ones, so new impressions and spend are missing.",
+   "signals": ["spend_missing", "net_cost_ratio_shift"],
+   "alert_patterns": [],
+   "phrases": ["line items were added", "新加的 creative", "没被抓到", "not successfully captured"],
+   "needs": ["femini.partner_report_rows", "femini.spend_metrics"],
+   "config_target": "upstream.line_item_scope",
+   "fix_zh": "把新 creative / line item 纳入取数范围，补录历史。",
+   "fix_en": "Include the new creatives / line items in the import and backfill history.",
+   "owner_role": "PA / 开发",
+   "examples": [
+    {"source": "slack", "channel": "#tilt", "ts": "2026-08-20T18:53:07Z", "who": "Rao Fu",
+     "quote": "It seems like since 8/6 some creative line items were added but their impressions and spend were not successfully captured.", "scope": {"links": [], "date": "2026-08-06"}}
+   ]
+  }
+ ]
+}

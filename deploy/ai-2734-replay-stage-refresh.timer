@@ -1,0 +1,9 @@
+[Unit]
+Description=Run AI-2734 campaign replay STAGE refresh daily
+
+[Timer]
+OnCalendar=*-*-* 04:30:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

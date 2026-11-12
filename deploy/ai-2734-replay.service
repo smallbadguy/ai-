@@ -1,0 +1,18 @@
+[Unit]
+Description=AI-2734 campaign replay (local only, port 8791)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/ai-2734-replay/app
+Environment=REPLAY_SECRETS=/home/ubuntu/ai-2734-replay/secrets
+Environment=REPLAY_PORT=8791
+Environment=REPLAY_BIND=127.0.0.1
+ExecStart=/usr/bin/python3 service/server.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,5 @@
+# 追加到 /etc/caddy/Caddyfile（先备份），DNS：replay-stage.feedmob.it.com -> 52.15.214.192（灰云）
+replay-stage.feedmob.it.com {
+	header X-Robots-Tag "noindex, nofollow"
+	reverse_proxy 127.0.0.1:8792
+}

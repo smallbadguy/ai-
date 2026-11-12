@@ -1,0 +1,22 @@
+[Unit]
+Description=AI-2734 campaign replay STAGE: our own agent on the AI job queue (Flash, same API as external agents)
+After=network-online.target ai-2734-replay-stage.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/ai-2734-replay-stage/app
+Environment=REPLAY_SECRETS=/home/ubuntu/ai-2734-replay-stage/secrets
+Environment=AI_WORKER_SLOTS=8
+Environment=AI_WORKER_MODEL=minimax-m3.1-flash
+Environment=AI_WORKER_CONTEXT=1000000
+ExecStart=/usr/bin/python3 -u service/ai_worker.py
+Restart=on-failure
+RestartSec=10
+# 停止时 ai_worker 会把手上的题退回队列（不算失败）
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

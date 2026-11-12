@@ -1,0 +1,13 @@
+[Unit]
+Description=AI-2734 campaign replay STAGE daily refresh
+After=network-online.target
+
+[Service]
+Type=oneshot
+# 不设上限：活动越来越多、还有 AI 步骤，整轮常超过 1 小时；设了上限会在半路被停掉，后面的活动都不刷新
+TimeoutStartSec=infinity
+User=ubuntu
+WorkingDirectory=/home/ubuntu/ai-2734-replay-stage/app
+Environment=REPLAY_SECRETS=/home/ubuntu/ai-2734-replay-stage/secrets
+Environment=REPLAY_MCP_CREDENTIALS=/home/ubuntu/ai-2734-replay/secrets/mcp-credentials.json
+ExecStart=/usr/bin/python3 service/refresh.py

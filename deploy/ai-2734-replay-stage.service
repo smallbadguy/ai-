@@ -1,0 +1,22 @@
+[Unit]
+Description=AI-2734 campaign replay STAGE (local only, port 8792, Google login)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/ai-2734-replay-stage/app
+Environment=REPLAY_SECRETS=/home/ubuntu/ai-2734-replay-stage/secrets
+Environment=REPLAY_MCP_CREDENTIALS=/home/ubuntu/ai-2734-replay/secrets/mcp-credentials.json
+Environment=REPLAY_PORT=8792
+Environment=REPLAY_BIND=127.0.0.1
+Environment=REPLAY_AUTH=google
+Environment=REPLAY_PUBLIC_URL=https://replay-stage.feedmob.it.com
+Environment=REPLAY_ALLOWED_DOMAINS=feedmob.com
+ExecStart=/usr/bin/python3 service/server.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

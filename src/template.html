@@ -1,0 +1,1488 @@
+<!doctype html>
+<html lang="__HTML_LANG__">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>案卷回放 · __CASE_NO__</title>
+<style>
+/*__FONTS__*/
+:root{
+  --bg:#05060F; --s1:#0D0C19; --s2:#171428; --s3:#1F1B36;
+  --ink:#F4F2FA; --dim:#ABA5C0; --faint:#9A93B4;
+  --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.15);
+  --violet:#7C5CFF; --violet-d:#6A4AF2; --lilac:#C4B5FD; --blue:#3D8BFF; --cyan:#22D3EE; --orange:#FB923C;
+  --good:#34D399; --warn:#FBBF24; --bad:#F87171;
+  --good-bg:rgba(52,211,153,.13); --warn-bg:rgba(251,191,36,.13); --bad-bg:rgba(248,113,113,.14); --violet-bg:rgba(124,92,255,.16);
+  --panel:linear-gradient(170deg,#141126,#0B0A15);
+  --grad:linear-gradient(120deg,#C4B5FD 0%,#7C5CFF 52%,#3D8BFF 100%);
+  --ui:"Lato",-apple-system,"PingFang SC","Hiragino Sans GB","Microsoft YaHei UI",system-ui,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --lw:44px; --n:15; --sw:150px; --tw:66px; --card:318px;
+  --roster-w:250px; --evid-w:340px; --insp-w:300px;
+}
+*{box-sizing:border-box;scrollbar-width:thin;scrollbar-color:#2b2745 transparent}
+html{color-scheme:dark}
+html,body{height:100%;margin:0}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+::-webkit-scrollbar-thumb{background:#2b2745;border-radius:99px;border:2px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background:#3d3760;border:2px solid transparent;background-clip:padding-box}
+body{background:radial-gradient(120% 70% at 50% -12%,rgba(124,92,255,.24),rgba(61,139,255,.07) 46%,transparent 72%),var(--bg);color:var(--ink);font:14px/1.45 var(--ui);-webkit-font-smoothing:antialiased;overflow:hidden}
+kbd,.kbd{font:500 10.5px var(--mono);padding:1px 6px;border-radius:5px;background:rgba(255,255,255,.08);box-shadow:inset 0 0 0 1px var(--line2);color:var(--dim)}
+/* cards: every block of the console sits on the same raised panel */
+.top,.ctl,.roster,.pane,.mail,.evstrip,.evid,.insp,.wait{background:var(--panel);border-radius:18px;box-shadow:inset 0 0 0 1px var(--line)}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--lilac);outline-offset:2px;border-radius:6px}
+.mono{font-family:var(--mono)}
+.origin{font-size:11px;color:var(--faint);margin:2px 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app{height:100vh;min-width:1500px;display:flex;flex-direction:column;gap:7px;padding:9px 14px 6px}
+.app>*{flex:none}
+.app>.main{flex:1 1 0;min-height:0}
+.app.no-charter #charter{display:none}
+
+/* 证据条（对应原版中栏底部的 EVIDENCE 条） */
+.center{position:relative}
+/* evidence, as in the original: a block under the stage that folds to one line, or on wide screens a column beside it.
+   Charts are drawn at the plot's real pixel width, so their 10px labels never scale up. */
+.evstrip{display:flex;flex-direction:column;gap:6px;margin-top:7px;padding:8px 14px 10px;flex:0 1 auto;min-width:0;min-height:0;overflow:auto}
+.evstrip[hidden]{display:none}
+.evh{display:flex;align-items:center;gap:10px;min-width:0}
+.evh .lb{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:700;white-space:nowrap}
+.evh .es{min-width:0;font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.evh .spark{display:none;flex:none;line-height:0;margin-left:4px}
+.evh .cnt{margin-left:auto;font:11px var(--mono);color:var(--dim);white-space:nowrap}
+.evtg{flex:none;margin-left:8px;border-radius:99px;padding:2px 11px;font-size:11px;font-weight:700;color:var(--dim);background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px var(--line2)}
+.evtg:hover{color:var(--ink);background:rgba(255,255,255,.1)}
+.evb{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:12px;min-width:0}
+.evb.one{grid-template-columns:minmax(0,1fr)}
+.evc{margin:0;min-width:0}
+.cap{font-size:11.5px;font-weight:700;color:var(--ink);margin:0 0 4px;line-height:1.3}
+.plot{min-width:0;line-height:0}
+.plot svg{display:block;overflow:visible}
+.plot .gl{stroke:rgba(255,255,255,.09);stroke-dasharray:3 4}
+.plot .ax{font:10px var(--mono);fill:var(--faint)}
+.plot .ax.r{fill:#7FE3F5}
+.plot .vl{font:10px var(--mono);fill:var(--ink)}
+.evstrip .lgd{margin:4px 0 0}
+.evt{min-width:0;display:flex;flex-direction:column}
+.evt .tw{max-height:230px;overflow:auto;margin:0}
+.evt .tw th{white-space:nowrap}
+.evt .tw td.n,.evt .tw th.n{text-align:right;font-family:var(--mono);white-space:nowrap}
+.evt .tw tr.cur td{background:var(--violet-bg)}
+.evt .tw tr.fut td{opacity:.42}
+.evt .note{margin:5px 0 0;line-height:1.35}
+.evstrip .read{margin:0}
+.evstrip.collapsed .evb,.evstrip.collapsed .read{display:none}
+.evstrip.collapsed .spark{display:inline-block}
+@media (max-height:940px) and (max-width:1759px){.evstrip .read{display:none}}
+
+/* 顶部状态条 */
+.top{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;min-height:48px;padding:5px 14px;box-shadow:inset 0 0 0 1px var(--line),0 12px 40px rgba(0,0,0,.35)}
+.brand{display:flex;align-items:center;gap:9px;padding-right:2px;flex:none}
+.brand>div{display:flex;align-items:center;gap:9px}
+.mark{width:30px;height:30px;border-radius:9px;background:var(--grad);display:grid;place-items:center;box-shadow:0 6px 18px rgba(124,92,255,.35)}
+.mark i{width:10px;height:10px;border-radius:3px;background:#fff;opacity:.92}
+.brand b{font-size:20px;font-weight:900;letter-spacing:-.03em;line-height:1;white-space:nowrap}
+.brand small{display:block;max-width:7.5em;font-size:12px;line-height:1.1;color:var(--dim);padding-left:9px;border-left:1px solid var(--line2)}
+@media (max-width:1559px){.brand small{display:none}}
+/* the client's other campaigns, as the original's job picker */
+.picker{position:relative;display:flex;align-items:center;gap:2px;padding:2px;border-radius:13px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px var(--line);flex:none;max-width:100%;overflow-x:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.25) transparent}
+.picker[hidden]{display:none}
+.top>.picker{flex:1 1 100%}
+/* more campaigns than fit: a visible horizontal scrollbar */
+.picker::-webkit-scrollbar{height:6px}
+.picker::-webkit-scrollbar-thumb{background:rgba(255,255,255,.22);border:0;border-radius:99px}
+.picker::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.4);border:0}
+.picker .pg{flex:none;padding:0 5px 0 9px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);white-space:nowrap}
+.picker .pg:first-child{padding-left:7px}
+.picker a{flex:none;padding:5px 11px;border-radius:11px;font:700 12px var(--mono);letter-spacing:-.01em;color:var(--dim);text-decoration:none;white-space:nowrap}
+.picker a:hover{color:var(--ink);background:rgba(255,255,255,.07)}
+.picker a.on{background:var(--violet-d);color:#fff;box-shadow:0 6px 20px rgba(124,92,255,.35)}
+/* the room pill opens a campaign menu: campaign name + click URL ID, searchable */
+.room.pick{cursor:pointer}
+.room.pick:hover,.room.pick[aria-expanded=true]{background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px var(--line2)}
+.room .caret{flex:none;font-style:normal;font-size:13px;line-height:1;color:var(--dim)}
+.roommenu{position:fixed;z-index:2147483100;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:14px;background:linear-gradient(170deg,#1B1731,#100E1F);box-shadow:inset 0 0 0 1px var(--line2),0 18px 50px rgba(0,0,0,.6);max-height:min(70vh,560px)}
+.roommenu[hidden]{display:none}
+.rmq{flex:none;border:0;border-radius:10px;background:rgba(0,0,0,.3);box-shadow:inset 0 0 0 1px var(--line2);padding:7px 10px;color:var(--ink);font:inherit;font-size:12.5px;outline:none}
+.rmq:focus{box-shadow:inset 0 0 0 1px var(--lilac)}
+.rml{overflow:auto;display:flex;flex-direction:column;gap:1px;min-height:0}
+.rmg{padding:8px 8px 3px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.rmg[hidden],.rmi[hidden]{display:none}
+.rmi{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:9px;color:var(--ink);text-decoration:none;font-size:12.5px}
+.rmi:hover,.rmi:focus{background:rgba(255,255,255,.07);outline:none}
+.rmi.on{background:var(--violet-bg);box-shadow:inset 0 0 0 1px rgba(196,181,253,.38)}
+.rmi .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+.rmi code{flex:none;font:500 11.5px var(--mono);color:var(--lilac)}
+.rm0{padding:10px 8px;font-size:12px;color:var(--dim)}
+.room{display:flex;align-items:center;gap:7px;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.06);box-shadow:inset 0 0 0 1px var(--line);font-size:12px;min-width:0}
+.room em{font-style:normal;color:var(--faint);font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;flex:none}
+.room b{min-width:0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.room code{flex:none;font:500 11.5px var(--mono);color:var(--lilac)}
+.demo{font-size:12px;font-weight:700;color:var(--warn);background:var(--warn-bg);padding:3px 11px;border-radius:99px}
+/* source chips, like the original's connection health: those that don't fit wrap onto the next line, none is hidden */
+.srcs{display:flex;flex-wrap:wrap;align-items:center;gap:5px 7px;flex:1;min-width:0}
+.sc{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;line-height:17px;padding:2px 8px 2px 7px;border-radius:99px;white-space:nowrap}
+.sc.ok{color:var(--good);background:var(--good-bg)}
+.sc.limited{color:var(--warn);background:var(--warn-bg)}
+.sc.planned{color:var(--dim);background:rgba(255,255,255,.06)}
+.sc b{color:var(--ink)}
+.sc.none{color:var(--faint);background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px var(--line);font-weight:400}
+.sc.none b{color:var(--dim)}
+.sc .w{font-weight:400;opacity:.9}
+/* like the original: under 2000px the mark says it and the word moves to the tooltip; a "nothing found" note always shows */
+@media (max-width:1999px){.sc:not(.none) .w{display:none}}
+.jobs{display:flex;gap:4px;flex:none}
+.pill-b{font-size:12px;font-weight:700;padding:5px 11px;border-radius:11px;color:var(--dim)}
+.pill-b:hover{color:var(--ink);background:rgba(255,255,255,.07)}
+.pill-b[aria-pressed=true],.pill-b.on{background:var(--violet-d);color:#fff;box-shadow:0 6px 20px rgba(124,92,255,.35)}
+
+/* 播放条 */
+.ctl{display:flex;align-items:center;gap:16px;height:64px;padding:7px 14px}
+.play{width:44px;height:44px;flex:none;border-radius:50%;background:var(--grad);display:grid;place-items:center;box-shadow:0 10px 34px rgba(124,92,255,.42)}
+.play:hover{filter:brightness(1.1)}
+.play svg{width:18px;height:18px;fill:#fff}
+.clock{min-width:200px}
+.clock .t{font:500 22px/1.1 var(--mono);letter-spacing:-.03em;white-space:nowrap}
+.clock .s{font-size:11px;color:var(--dim);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.strip{position:relative;flex:1;height:50px;cursor:pointer;touch-action:none;border-radius:12px;background:rgba(255,255,255,.035);box-shadow:inset 0 0 0 1px var(--line)}
+.strip .bars{position:absolute;top:7px;bottom:15px;left:8px;display:block}
+.strip .b{position:absolute;bottom:0;transform:translateX(-50%);border-radius:2px 2px 0 0;background:rgba(171,165,192,.28);height:var(--h)}
+.strip .b.on{background:#8E73FF}
+.strip .b.cur{background:var(--lilac)}
+.strip .head{position:absolute;top:-7px;bottom:-15px;width:0;pointer-events:none;z-index:2}
+.strip .head::before{content:"";position:absolute;left:-1px;top:2px;bottom:2px;width:2px;background:#fff;box-shadow:0 0 12px rgba(196,181,253,.9)}
+.strip .head::after{content:"";position:absolute;left:-6px;top:-1px;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px var(--violet)}
+.strip .dot{position:absolute;bottom:-10px;width:6px;height:6px;border-radius:50%;background:var(--good);margin-left:-3px;box-shadow:0 0 0 1.5px #0F0D1E;opacity:.75}
+.strip .after{position:absolute;top:0;bottom:0;right:0;border-radius:0 12px 12px 0;background:repeating-linear-gradient(135deg,rgba(255,255,255,.045) 0 6px,transparent 6px 12px);border-left:1px dashed var(--line2);display:flex;align-items:flex-start;padding:4px 0 0 7px;font-size:9.5px;letter-spacing:.12em;color:var(--dim);font-weight:700;white-space:nowrap;overflow:hidden}
+.strip .after em{position:absolute;left:6px;bottom:5px;font-style:normal;font-size:9.5px;letter-spacing:.12em;color:#1a1300;background:var(--warn);border-radius:5px;padding:0 5px}
+.strip .actsep{position:absolute;top:-3px;bottom:-11px;width:1px;background:var(--line2)}
+.strip .actlb{position:absolute;top:-6px;font-size:10px;color:var(--faint);white-space:nowrap}
+.spd{display:flex;gap:2px;padding:2px;border-radius:13px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px var(--line)}
+.spd .pill-b{font-family:var(--mono);letter-spacing:-.01em}
+.jump,.btn{display:inline-flex;align-items:center;gap:6px;border-radius:14px;padding:7px 14px;font-size:13px;font-weight:700;line-height:1.3;white-space:nowrap;background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px var(--line)}
+.jump:hover,.btn:hover{background:rgba(255,255,255,.12)}
+.btn.primary{background:#6644F0;color:#fff;box-shadow:0 10px 40px rgba(124,92,255,.35)}
+.btn.primary:hover{background:#6F4EF5}
+
+/* 核对清单 */
+.charter{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:5px 12px;border-radius:14px;background:rgba(255,255,255,.03);box-shadow:inset 0 0 0 1px var(--line);height:33px;overflow:hidden}
+.charter .lb{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.charter .ct{font:500 13px var(--mono);margin-right:4px}
+.charter .lb,.charter .ct,.charter .chip,.charter .keys{flex:none;white-space:nowrap}
+.chip{font-size:12px;font-weight:700;padding:2px 11px 2px 8px;border-radius:99px;display:inline-flex;align-items:center;gap:5px}
+.chip.ok{color:var(--good);background:var(--good-bg)}
+.chip.no{color:var(--dim);background:rgba(255,255,255,.06)}
+.chip.warn{color:var(--warn);background:var(--warn-bg)}
+.chip.bad{color:var(--bad);background:var(--bad-bg)}
+.chip.v{color:var(--lilac);background:var(--violet-bg)}
+.charter .chip.ok{box-shadow:inset 0 0 0 1px rgba(52,211,153,.4)}
+.charter .chip.no{background:none;outline:1px dashed rgba(255,255,255,.22);outline-offset:-1px}
+/* source chips: neutral like the original's service chips, the dot keeps each source's colour */
+.src-chip{color:var(--ink);background:var(--s2);box-shadow:inset 0 0 0 1px var(--line2)}
+.src-chip::before{content:"";flex:none;width:6px;height:6px;border-radius:50%;background:var(--sc)}
+.charter .keys{margin-left:auto;font-size:11px;color:var(--dim);display:flex;gap:6px;align-items:center}
+
+/* Main workspace */
+.main{display:grid;grid-template-columns:var(--roster-w) minmax(0,1fr) var(--evid-w) var(--insp-w);gap:7px;min-height:0}
+.right-stack{display:contents;min-width:0}
+.app:not(.presentation-mode) .main{grid-template-columns:minmax(0,var(--roster-w)) 18px minmax(280px,1fr) 18px minmax(0,var(--evid-w)) 18px minmax(0,var(--insp-w));gap:0}
+.resize-handle{display:flex;align-items:flex-start;justify-content:center;position:relative;z-index:3;min-width:18px;cursor:col-resize;touch-action:none;user-select:none}
+.resize-handle::after{content:"";position:absolute;top:8px;bottom:8px;left:50%;width:1px;background:transparent;transition:background .16s}
+.resize-handle:hover::after,.resize-handle:focus-within::after,.app.is-resizing .resize-handle::after{background:var(--line2)}
+.resize-handle button{position:relative;z-index:1;width:21px;height:36px;margin-top:9px;border:1px solid var(--line);border-radius:8px;background:var(--s1);color:var(--dim);font:700 15px/1 var(--mono);opacity:.42;transition:opacity .16s,background .16s,color .16s}
+.resize-handle:hover button,.resize-handle:focus-within button{opacity:1;color:var(--ink);background:var(--s2)}
+.app.is-resizing,.app.is-resizing *{cursor:col-resize!important;user-select:none!important}
+.app.roster-collapsed #roster,.app.evid-collapsed #evid,.app.insp-collapsed #insp{visibility:hidden;overflow:hidden}
+.app:not(.presentation-mode) #roster{grid-column:1}
+.app:not(.presentation-mode) .resize-handle[data-resize="roster"]{grid-column:2}
+.app:not(.presentation-mode) .center{grid-column:3}
+.app:not(.presentation-mode) .resize-handle[data-resize="evid"]{grid-column:4}
+.app:not(.presentation-mode) #evid{grid-column:5}
+.app:not(.presentation-mode) .resize-handle[data-resize="insp"]{grid-column:6}
+.app:not(.presentation-mode) #insp{grid-column:7}
+.panel{min-height:0;overflow-y:auto;overflow-x:hidden}
+.roster{padding:4px 6px 6px;display:flex;flex-direction:column;gap:1px}
+.grp{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:700;padding:7px 8px 3px}
+.mem{display:grid;grid-template-columns:36px minmax(0,1fr);gap:11px;align-items:center;padding:4px 8px;border-radius:13px;text-align:left;width:100%;line-height:1.22}
+.mem:hover{background:rgba(255,255,255,.05)}
+.mem.sel{background:var(--violet-bg);box-shadow:inset 0 0 0 1px rgba(196,181,253,.38)}
+.mem .nm{font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
+.mem .rl{font-size:11px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mem .tn{font-size:11px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mem .tn b{font-size:9.5px;font-weight:700;letter-spacing:.12em;color:var(--faint);margin-right:5px}
+.mem .tn.hold{color:var(--lilac)}
+.mem .tn.done{color:var(--good)}
+.mem .av{--sz:36px}
+.tag{font-size:10px;font-weight:700;letter-spacing:.04em;padding:1px 6px;border-radius:5px;color:var(--lilac);border:1px solid rgba(196,181,253,.5);white-space:nowrap}
+.tag.h{color:var(--faint);border-color:var(--line2)}
+/* initials avatar with the original's state ring (a 2px ring 2px off the face) */
+.av{--sz:34px;width:var(--sz);height:var(--sz);flex:none;border-radius:50%;display:grid;place-items:center;font:900 calc(var(--sz)*.36)/1 var(--ui);color:#10101c;background:var(--c);position:relative}
+.av::after{content:"";display:none;position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--ring,transparent);pointer-events:none}
+.mem .av::after,.lh .av::after,.ih .av::after,.msg>.av::after{display:block}
+.av.bot{border-radius:0;clip-path:polygon(25% 4%,75% 4%,100% 50%,75% 96%,25% 96%,0 50%)}
+.av.sm{--sz:24px}.av.xs{--sz:20px}.av.lg{--sz:64px}
+.av.sm::after{inset:-3px}.av.lg::after{inset:-5px}
+.av[data-s=hold]{--ring:var(--violet)}
+.av[data-s=done]{--ring:var(--good)}
+.av[data-s=idle]{--ring:rgba(255,255,255,.22)}
+.av[data-s=off]{opacity:.45}
+.app.presentation-mode .av[data-s=idle]{--ring:color-mix(in srgb,var(--c) 40%,transparent)}
+.app.presentation-mode .av[data-s=hold]{--ring:var(--c)}
+.legend{margin-top:auto;padding:12px 8px 2px;border-top:1px solid var(--line);display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;color:var(--dim)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;border:2px solid var(--c);margin-right:5px;vertical-align:-1px}
+
+/* 中栏 */
+.center{display:flex;flex-direction:column;min-width:0;min-height:0}
+.tabs{display:flex;gap:2px;padding:0 2px}
+.tab{font-size:13px;font-weight:700;padding:7px 14px;border-radius:12px 12px 0 0;color:var(--dim);position:relative;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected=true]{color:var(--ink);background:linear-gradient(0deg,rgba(124,92,255,.14),transparent)}
+.tab[aria-selected=true]::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--violet)}
+.tab small{font:500 10.5px var(--mono);background:rgba(255,255,255,.08);padding:1px 6px;border-radius:99px;color:var(--dim)}
+.sub{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;padding:6px 0 7px}
+.tabs,.sub{overflow-x:auto;scrollbar-width:none}  /* a narrow middle column scrolls them sideways instead of spilling over */
+.tabs::-webkit-scrollbar,.sub::-webkit-scrollbar{display:none}
+.vsw{display:flex;flex:none;gap:2px;padding:2px;border-radius:13px;background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px var(--line)}
+.vsw .pill-b{padding:5px 14px;font-size:12.5px;white-space:nowrap}
+.sub .dim{display:flex;flex:none;align-items:center;gap:7px;font-size:12px;color:var(--dim);white-space:nowrap}
+.sub .dim input{accent-color:var(--violet);width:15px;height:15px;margin:0}
+.sub .jt{flex:1 1 0;min-width:0;margin-left:auto;font-size:12px;color:var(--dim);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub .jt b{color:var(--ink)}
+.mail{background:linear-gradient(180deg,rgba(124,92,255,.10),rgba(124,92,255,.02)),var(--panel);padding:8px 14px 7px;margin-bottom:7px}
+.mail .hd{display:flex;align-items:baseline;gap:9px;font-size:11px;color:var(--dim)}
+.mail .hd b{font-size:11.5px;letter-spacing:.12em;color:var(--lilac)}
+.mail .cnt{display:grid;grid-template-columns:repeat(var(--cols,8),minmax(0,1fr));gap:7px;margin:6px 0 5px}
+.mail .cn{min-width:0;display:flex;flex-direction:column;justify-content:space-between;background:var(--s2);border-radius:10px;box-shadow:inset 0 0 0 1px var(--line);padding:3px 10px 4px}
+.mail .cn span{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:700;display:block;overflow-wrap:anywhere}
+.mail .cn b{font:500 19px/1.15 var(--mono)}
+.mail .cn.g b{color:var(--good)}
+.mail .lg{font:11px var(--mono);color:var(--dim);display:flex;gap:10px;white-space:nowrap;overflow:hidden}
+.mail .lg i{font-style:normal;color:var(--faint)}
+.mail .lg em{font-style:normal;font-size:10px;border:1px solid var(--line2);border-radius:5px;padding:0 5px}
+.pane{flex:1;min-height:0;overflow:auto;position:relative}
+.pane.pad{padding:14px}
+.follow{position:absolute;right:20px;bottom:14px;z-index:20;background:#5B3FD6;color:#fff;font-weight:700;font-size:12.5px;padding:7px 15px;border-radius:14px;box-shadow:0 10px 40px rgba(124,92,255,.35)}
+
+/* Ladder */
+.lad{min-width:calc(var(--tw) + var(--n)*var(--lw) + var(--sw));min-height:100%;background:var(--s1)}
+.lhd{position:sticky;top:0;z-index:30;background:var(--s1);border-bottom:1px solid var(--line2);display:grid;grid-template-columns:var(--tw) calc(var(--n)*var(--lw)) var(--sw)}
+.lhd .gl{display:flex;font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--dim);border-bottom:1px solid var(--line)}
+.lhd .gl span{padding:5px 0 4px 8px}
+.lhd .gl:first-of-type span:first-child{color:var(--lilac);background:rgba(124,92,255,.10)}
+.lhd .tm{grid-row:2;align-self:end;padding:0 10px 9px 0;text-align:right;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:700}
+.lanes{display:flex;grid-row:2}
+.lh{width:var(--lw);display:flex;flex-direction:column;align-items:center;padding:7px 0 6px;cursor:pointer;border-bottom:3px solid var(--c,var(--line2))}
+.lh:hover{background:var(--s3)}
+.lh.sel{background:var(--violet-bg);box-shadow:inset 0 0 0 1px rgba(196,181,253,.4)}
+.lh .av{--sz:clamp(20px,calc(var(--lw) - 10px),34px)}
+.app.presentation-mode .lh .ltg{display:none}
+.lad.tight .lh .nm{display:none}
+.lad.tight .lh .av{--sz:calc(var(--lw) - 6px)}
+.lad.tight .lh .av::after{inset:-2px;border-width:1.5px}
+.lh .nm{font-size:11px;font-weight:700;margin-top:7px;line-height:1.1;max-width:var(--lw);overflow:hidden;text-overflow:clip;white-space:nowrap}
+.lh .ltg{font-size:9.5px;color:var(--dim);line-height:1.2}
+.lh .ltg,.lh .st{max-width:calc(var(--lw) - 2px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lh .st{font-size:9.5px;color:var(--faint);line-height:1.2;margin-top:1px}
+.lh .st.hold{color:var(--lilac)}.lh .st.done{color:var(--good)}
+.lh.off{opacity:.42}
+/* source tags over the rail: short ones pair up, a long one takes its own row, one longer than the rail ends in "…" */
+.sbx{grid-row:2;border-left:1px solid var(--line2);padding:3px 8px 8px;display:flex;flex-wrap:wrap;gap:4px;align-content:start;min-width:0}
+.sx{font:10.5px var(--mono);border:1px solid var(--line2);border-radius:5px;background:var(--s2);padding:1px 6px;display:flex;justify-content:space-between;gap:4px;white-space:nowrap}
+.sbx .sx{flex:1 1 auto;min-width:0}
+.sx .t{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.sx i{font-style:normal;color:var(--faint)}
+.sx.on{color:var(--ink)}.sx:not(.on){color:var(--faint)}
+/* 业务版：协作方式标签用简称、几列排开，跟头像行差不多高。以前一行一个，把整行表头撑得比头像高出一大截，头像下面空一大块（2026-10-31 用户反馈） */
+.app.presentation-mode .sbx{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:2px 3px;padding:3px 5px;align-content:center}
+.app.presentation-mode .sbx .sx{font-size:9.5px;line-height:12px;padding:1px 3px;justify-content:center}
+.app.presentation-mode .lh{justify-content:center}
+.lrow{display:grid;grid-template-columns:var(--tw) calc(var(--n)*var(--lw)) var(--sw);position:relative;border-bottom:1px solid var(--line)}
+.lrow.hide{display:none}
+.lrow.dim{opacity:.28}
+.lrow.cur{background:linear-gradient(90deg,rgba(124,92,255,.1),transparent 70%)}
+.tcol{grid-row:1/3;padding:10px 9px 0 0;text-align:right}
+.tcol .no{font:500 10.5px var(--mono);background:var(--s2);border:1px solid var(--line2);border-radius:5px;padding:0 5px}
+.tcol .hm{font:11px var(--mono);color:var(--dim);margin-top:3px;display:block}
+.tcol .dt{font:10px var(--mono);color:var(--faint);display:block}
+/* lifelines are dashed, like the original ladder's */
+.rails{grid-area:1/2/3/4;position:relative;pointer-events:none}
+.rails::before{content:"";position:absolute;top:0;bottom:0;left:0;width:calc(var(--n)*var(--lw));background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cline x1='50%25' y1='0' x2='50%25' y2='4' stroke='white' stroke-opacity='.17' shape-rendering='crispEdges'/%3E%3C/svg%3E");background-size:var(--lw) 8px}
+.rails::after{content:"";position:absolute;top:0;bottom:0;left:calc(var(--n)*var(--lw));width:2px;background:var(--line2)}
+.hb{position:absolute;width:9px;margin-left:-4.5px;background:var(--c,var(--violet));opacity:.9;border-radius:5px;box-shadow:2px 0 0 var(--s1),-2px 0 0 var(--s1)}
+.hb.f{top:0;bottom:0;border-radius:0}
+.hb.s{top:22px;bottom:0;border-radius:5px 5px 0 0}
+.hb.e{top:0;height:22px;border-radius:0 0 5px 5px}
+.nd{position:absolute;top:22px;width:13px;height:13px;margin:-6.5px 0 0 -6.5px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px var(--s1),0 0 0 4px var(--c);z-index:3}
+.tg{position:absolute;bottom:13px;width:11px;height:11px;margin:0 0 -5.5px -5.5px;border-radius:50%;box-shadow:0 0 0 2px var(--c);background:var(--s1);z-index:3}
+.card{grid-area:1/2/2/3;z-index:2;margin:9px 0 0;width:var(--card);min-width:0}
+.cname{display:inline-flex;align-items:center;gap:7px;padding:2px 12px 2px 3px;border-radius:99px;border:1px solid color-mix(in srgb,var(--c,var(--lilac)) 75%,transparent);background:var(--s2);font-size:13px;max-width:100%;white-space:nowrap}
+.cname b{font-weight:700}
+.cname span{color:var(--lilac);font-weight:700;overflow:hidden;text-overflow:ellipsis}
+.bub{margin-top:6px;border-left:3px solid var(--lilac);border-radius:10px;background:var(--s2);box-shadow:inset 0 0 0 1px var(--line2);padding:7px 12px 9px}
+.bub .lbl{font-size:10px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--lilac);display:flex;align-items:center;gap:6px;margin-bottom:2px}
+.bub h4{margin:0;font-size:13.5px;line-height:1.45;font-weight:700}
+.bub p{margin:4px 0 0;font-size:12.5px;line-height:1.55;color:#d9d5e8}
+.qt{margin-top:6px;border-left:2px solid var(--violet);padding:1px 0 1px 9px;font-size:12.5px;color:var(--ink);overflow-wrap:anywhere;white-space:pre-wrap;max-height:360px;overflow:auto;user-select:text}
+.xlat{margin-top:7px;padding:6px 9px;border-left:2px solid var(--good);background:rgba(52,211,153,.06);font-size:12px;line-height:1.5;color:var(--dim);white-space:pre-wrap;overflow-wrap:anywhere}
+.xlat b{display:block;font-size:9.5px;letter-spacing:1px;color:var(--good);margin-bottom:2px}
+.editorial{margin-top:7px;border-top:1px dashed var(--line);padding-top:5px;color:var(--dim);font-size:11.5px;line-height:1.5}
+.editorial summary{cursor:pointer;color:var(--faint)}
+.editorial div{margin-top:5px;white-space:pre-wrap;overflow-wrap:anywhere}
+.addr{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:8px;padding-top:7px;border-top:1px solid var(--line);font-size:11.5px;color:var(--dim)}
+.addr .p{display:inline-flex;align-items:center;gap:5px;color:var(--ink);font-weight:700}
+.co{margin-top:6px;border-radius:12px;padding:7px 12px 8px;font-size:12.5px;line-height:1.5;background:#2a2312;border:1px solid rgba(251,191,36,.25)}
+.co b{display:block;font-size:9.5px;letter-spacing:1.2px;color:var(--warn);margin-bottom:1px}
+.co.problem{background:#2c1719;border-color:rgba(248,113,113,.3)}
+.co.problem b{color:var(--bad)}
+.refl{margin-top:7px;padding-top:6px;border-top:1px dashed var(--line);font:10.5px var(--mono);color:var(--faint);overflow-wrap:anywhere}
+.refl a{color:var(--lilac);text-underline-offset:2px}
+.calls{grid-area:2/2/3/4;display:flex;align-items:center;min-height:32px;padding:3px 0 7px;z-index:2;min-width:0}
+.tool{display:inline-flex;align-items:center;gap:7px;font:500 11.5px var(--mono);background:var(--s1);border:1px solid var(--line2);border-radius:6px;padding:2px 8px;white-space:nowrap}
+.tool i{font-style:normal;color:var(--faint)}
+.res{font:11px var(--mono);color:var(--dim);margin-left:9px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto}
+.arr{flex:1;height:2px;background:var(--ink);margin:0 6px 0 8px;position:relative;min-width:16px;opacity:.85}
+.arr::after{content:"";position:absolute;right:-2px;top:-4px;border:5px solid transparent;border-left:9px solid var(--ink);border-right:0}
+.sp{width:var(--sw);flex:none;display:flex;gap:4px;flex-wrap:wrap;padding-left:8px}
+.sp .chip{font-size:10.5px;font-family:var(--mono);padding:0 7px 0 5px}
+
+/* Thread */
+.thr{max-width:900px;margin:0 auto;padding:0 0 70px}
+.thh{position:sticky;top:0;z-index:5;background:var(--s1);margin:0 0 4px;padding:12px 20px;border-bottom:1px solid var(--line);display:flex;align-items:baseline;gap:10px;font-size:16px;font-weight:900;letter-spacing:-.01em}
+.thh span{font-size:12px;font-weight:400;color:var(--dim);letter-spacing:0}
+.day{display:flex;align-items:center;gap:12px;padding:12px 20px 6px;font-size:11.5px;font-weight:700;color:var(--faint)}
+.day::before,.day::after{content:"";flex:1;height:1px;background:var(--line)}
+.day span{border-radius:99px;padding:2px 12px;background:var(--s2);box-shadow:inset 0 0 0 1px var(--line);color:var(--dim)}
+.msg{display:grid;grid-template-columns:40px minmax(0,1fr);gap:12px;padding:8px 20px;cursor:pointer;position:relative}
+.msg:hover{background:rgba(255,255,255,.022)}
+.msg.cur{background:rgba(124,92,255,.07)}
+.msg.cur::before{content:"";position:absolute;left:0;top:6px;bottom:6px;width:3px;border-radius:0 3px 3px 0;background:var(--violet)}
+.msg>.av{--sz:40px}
+.msg .hd{display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px}
+.msg .hd b{font-size:15px}.msg .hd span{font:11.5px var(--mono);color:var(--faint)}
+.msg .bd{margin-top:3px;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+.msg .qq{display:inline-block;margin-top:4px;padding:8px 12px;border-radius:4px 12px 12px 12px;background:var(--s2);box-shadow:inset 0 0 0 1px var(--line)}
+.msg .tl{margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+/* Log */
+.logv{padding:14px 16px 70px;display:grid;gap:10px}
+.lg1{border-radius:14px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px var(--line);padding:9px 12px 10px;cursor:pointer}
+.lg1.cur{box-shadow:inset 0 0 0 1px rgba(196,181,253,.55),0 0 24px rgba(124,92,255,.18)}
+.lg1 .h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.lg1 .h b{font-size:13px}
+.lg1 .h .tag{font-size:11px;padding:1px 8px;border:0;border-radius:99px;background:var(--violet-bg);color:var(--lilac);letter-spacing:0}
+.lg1 .h .t{margin-left:auto;font:11px var(--mono);color:var(--faint)}
+.cbox{margin:7px 0 0;border-radius:9px;background:rgba(0,0,0,.24);box-shadow:inset 0 0 0 1px var(--line);padding:4px 9px;display:flex;align-items:center;gap:8px;font:11.5px var(--mono)}
+.cbox .sy{font:700 9.5px var(--ui);letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:5px;background:rgba(255,255,255,.07);color:var(--dim)}
+.cbox .r{margin-left:auto}
+.lg1 .tx{margin-top:7px;font-size:12.5px;color:#d9d5e8;line-height:1.5}
+
+/* Tasks */
+.tfl{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.tfl .e{font-size:12px;font-weight:700;padding:5px 12px;border-radius:99px;background:rgba(255,255,255,.06)}
+.tfl .e.on{background:var(--violet-d);color:#fff}
+.tfl .f{border-radius:50%;padding:0}
+.tfl .f.off{opacity:.4}
+.tdesc{font-size:12.5px;color:var(--dim);margin:0 0 10px}
+.board{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.col{border-radius:16px;background:rgba(255,255,255,.028);box-shadow:inset 0 0 0 1px var(--line);padding:8px;min-height:200px}
+.col h5{margin:0 2px 8px;display:flex;align-items:center;gap:8px;font-size:12px}
+.col h5 em{font-style:normal;margin-left:auto;font:11px var(--mono);color:var(--dim)}
+.tk{display:grid;grid-template-columns:28px 1fr;gap:9px;padding:7px 9px;border-radius:12px;background:rgba(255,255,255,.045);box-shadow:inset 0 0 0 1px var(--line);margin-bottom:6px}
+.tk b{font-size:13px;display:block}
+.tk span{font-size:11.5px;color:var(--dim)}
+
+/* Connections / Accounts */
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cc{border-radius:16px;background:rgba(255,255,255,.035);box-shadow:inset 0 0 0 1px var(--line);padding:12px 14px}
+.cc .chip{margin-bottom:6px}
+.cc h3{margin:0 0 6px;font-size:14px}
+.cc ul{margin:0 0 8px;padding-left:18px;font-size:12.5px;color:#d9d5e8}
+.cc ul li{margin:2px 0}
+.cc .lim{font-size:12.5px;color:var(--warn)}
+.cc .use{margin-top:8px;font:11px var(--mono);color:var(--faint);border-top:1px solid var(--line);padding-top:6px}
+table.tb{width:100%;border-collapse:collapse;font-size:12.5px}
+table.tb th{text-align:left;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);padding:6px 9px;border-bottom:1px solid var(--line2)}
+table.tb td{padding:8px 9px;border-bottom:1px solid var(--line);vertical-align:middle}
+.who{display:flex;align-items:center;gap:8px;white-space:nowrap;font-weight:700}
+.tb .e{color:var(--dim)}
+
+/* 右侧：证据 + 详情 */
+.evid{padding:10px 12px 12px;container:evid / inline-size}
+.eh{display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:700;margin:2px 0 4px}
+.eh b{color:var(--ink)}
+.et{font-size:12px;font-weight:800;margin:2px 0 4px}
+.chart{width:100%;height:auto;display:block}
+.lgd{display:flex;gap:12px;font-size:10.5px;color:var(--dim);margin:2px 0 12px}
+.lgd i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.tw{border-radius:12px;background:rgba(0,0,0,.18);box-shadow:inset 0 0 0 1px var(--line);overflow:hidden;margin-bottom:8px}
+.tw table{width:100%;border-collapse:collapse;font-size:11.5px}
+.tw th{text-align:left;font:700 10px var(--ui);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);padding:5px 8px;background:#171428}
+.tw td{padding:5px 8px;border-top:1px solid var(--line);vertical-align:top;line-height:1.45}
+.tw td:first-child{white-space:nowrap;font-weight:700}
+.evid .tw table{table-layout:fixed}
+.evid .tw th:first-child{width:44%}
+.evid .tw td{overflow-wrap:anywhere}
+.evid .tw td:first-child{white-space:normal}
+@container evid (max-width:260px){
+  .evid .tw thead{display:none}
+  .evid .tw tr,.evid .tw td{display:block}
+  .evid .tw td+td{border-top:0;padding-top:0;color:var(--dim)}
+}
+.note{font-size:11px;color:var(--dim);margin:0 0 10px}
+.read{background:var(--violet-bg);box-shadow:inset 0 0 0 1px rgba(196,181,253,.28);border-radius:12px;padding:8px 12px;font-size:12.5px;line-height:1.45}
+.read b{color:var(--lilac)}
+.read .m{font:10.5px var(--mono);color:var(--dim);margin-top:5px}
+.insp{padding:14px 14px 16px}
+.ih{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center}
+.ih h3{margin:0;font-size:18px;font-weight:900;letter-spacing:-.025em;line-height:1.15}
+.ih .r{font-size:12px;color:var(--dim);line-height:1.35;margin-top:2px}
+.ib{font-size:12px;color:var(--dim);margin:9px 0 10px}
+.tn2{border-radius:12px;background:rgba(255,255,255,.045);box-shadow:inset 0 0 0 1px var(--line);padding:9px 12px;margin:12px 0}
+.tn2 span{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.tn2 b{font-size:12.5px}
+.sh{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:700;margin:14px 0 7px}
+.tl1{display:grid;grid-template-columns:auto 1fr;gap:3px 8px;align-items:start;padding:4px 0;font-size:12.5px;line-height:1.35}
+.tl1 .chip{font-size:11px;padding:1px 8px}
+.tl1 small{grid-column:2;color:var(--dim);font-size:11.5px;margin-top:-1px}
+.kv{font-size:12px;color:var(--dim);overflow-wrap:anywhere;margin:0 0 5px}
+.kv b{color:var(--ink)}
+
+/* 底部条 */
+.wait{display:flex;align-items:center;gap:14px;padding:9px 14px;min-height:50px}
+.wait .bd{flex:none;font:900 11px var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);background:rgba(255,255,255,.06);padding:5px 12px;border-radius:99px;white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
+.wait .bd::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.wait .tx{flex:1;min-width:0;font-size:12px;line-height:1.35;color:var(--dim)}
+.wait .tx b{color:var(--ink)}
+.wait .tx>b:first-child{font-size:13.5px}
+/* something is still open: the original's gold "waiting on you" bar */
+.wait.waiting{background:linear-gradient(170deg,#2A2108,#1A1405);box-shadow:inset 0 0 0 1px rgba(251,191,36,.55),0 0 40px rgba(251,191,36,.12)}
+.wait.waiting .bd{color:#1a1300;background:var(--warn)}
+.wait.waiting .bd::before{animation:pulse 1.6s ease-in-out infinite}
+.wait.waiting .tx{color:#E8D9A8}
+@keyframes pulse{50%{opacity:.35}}
+.foot{font-size:10.5px;color:var(--faint);line-height:1.35;padding:0 6px}
+
+@media (max-width:1700px){
+  :root{--lw:40px;--sw:136px;--card:300px}
+  .app:not(.presentation-mode){--roster-w:220px;--evid-w:300px;--insp-w:270px}
+  .srcs .sc.pl{display:none}
+}
+@media (max-width:1520px){
+  :root{--lw:38px;--sw:130px;--card:286px}
+  .app{min-width:0}
+  .app:not(.presentation-mode){--roster-w:185px;--evid-w:220px;--insp-w:190px}
+  .charter .keys,.sub .jt{display:none}
+  .tab{padding:7px 9px;white-space:nowrap}
+  .clock{min-width:180px}
+  .ctl{gap:10px}
+  .roster .mem .tag{display:none}
+  .evid .lgd{flex-wrap:wrap}
+  .pane.pad .tb{min-width:580px}
+}
+.people-table-wrap{max-width:100%;overflow-x:auto}
+@media (max-width:1000px){
+  .app:not(.presentation-mode) .main{grid-template-columns:minmax(0,var(--roster-w)) 18px minmax(280px,1fr) 18px minmax(0,1fr);gap:0}
+  .app:not(.presentation-mode) .right-stack{display:flex;flex-direction:column;grid-column:5;min-width:0;min-height:0;gap:8px;overflow:hidden}
+  .app:not(.presentation-mode) .right-stack>.resize-handle{height:18px;min-width:0;flex:none;cursor:default}
+  .app:not(.presentation-mode) .right-stack>.resize-handle::after{top:50%;bottom:auto;left:8px;right:8px;width:auto;height:1px}
+  .app:not(.presentation-mode) .right-stack>.resize-handle button{width:30px;height:18px;margin:0;transform:rotate(90deg);opacity:.8}
+  .app:not(.presentation-mode) .right-stack>.panel{flex:1 1 0;min-height:0}
+  .app:not(.presentation-mode).evid-collapsed #evid,.app:not(.presentation-mode).insp-collapsed #insp{display:none}
+}
+/* narrower: the chips leave the crowded first line for the second, right of the campaign picker */
+@media (max-width:1520px){
+  .top::before{content:"";order:1;flex-basis:100%;height:0;margin-top:-6px}
+  .top>.picker{order:2;flex:1 1 0;min-width:200px}
+  .top>.srcs{order:3;flex:0 1 auto;margin-left:auto}
+}
+@media (max-width:720px){.top>.srcs{order:6;flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.top>.srcs .sc{flex:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.app.presentation-mode .sc.demo{color:var(--ink);background:var(--s1);border:1px solid var(--line2)}
+.app.presentation-mode .srcs{justify-content:flex-end}
+.app.presentation-mode .legend{display:none}
+.app.presentation-mode .story-board{max-width:900px;margin:0 auto;padding:16px 18px 30px}
+.app.presentation-mode .story-board h2{font-size:21px;letter-spacing:-.3px;margin:2px 0 5px}
+.app.presentation-mode .story-board .tdesc{max-width:720px;color:var(--dim);margin:0 0 16px}
+.app.presentation-mode .workstream{display:grid;grid-template-columns:42px minmax(0,1fr);gap:14px;padding:15px 0;border-top:1px solid var(--line)}
+.app.presentation-mode .ws-num{font:600 12px var(--mono);color:var(--cyan);padding-top:4px}
+.app.presentation-mode .workstream h3,.app.presentation-mode .channel-card h3{font-size:15px;margin:0 0 5px}
+.app.presentation-mode .workstream p,.app.presentation-mode .channel-card p,.app.presentation-mode .person-card p{font-size:12.5px;line-height:1.55;color:var(--dim);margin:0}
+.app.presentation-mode .ws-people{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.app.presentation-mode .pitem{padding:14px 15px;border-radius:16px;background:rgba(255,255,255,.035);box-shadow:inset 0 0 0 1px var(--line);margin:0 0 10px}
+.app.presentation-mode .pitem.stale{opacity:.78;box-shadow:none;outline:1px dashed rgba(255,255,255,.22);outline-offset:-1px}
+.app.presentation-mode .pitem .ph{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.app.presentation-mode .pitem h3{font-size:14.5px;margin:0}
+.app.presentation-mode .pitem p{font-size:12.5px;line-height:1.55;color:var(--dim);margin:7px 0 0}
+.app.presentation-mode .ptags{display:flex;gap:5px;flex-wrap:wrap}
+.app.presentation-mode .ptag{font-size:10.5px;border:1px solid var(--line2);border-radius:99px;padding:1px 8px;color:var(--dim);white-space:nowrap}
+.app.presentation-mode .ptag.s-in_progress{background:var(--good-bg);color:var(--good);border-color:transparent}
+.app.presentation-mode .ptag.s-waiting_on_others{background:rgba(61,139,255,.15);color:var(--blue);border-color:transparent}
+.app.presentation-mode .ptag.s-on_hold,.app.presentation-mode .ptag.s-stale{background:var(--warn-bg);color:var(--warn);border-color:transparent}
+.app.presentation-mode .pitem dl{display:grid;grid-template-columns:max-content 1fr;gap:5px 12px;margin:10px 0 0;font-size:12.5px}
+.app.presentation-mode .pitem dt{color:var(--faint)}.app.presentation-mode .pitem dd{margin:0;color:var(--ink)}
+.app.presentation-mode .pitem dd b.unk{color:var(--warn)}.app.presentation-mode .pbasis{font-size:11px;color:var(--faint);margin-left:4px}
+.app.presentation-mode .pitem details{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.app.presentation-mode .pitem summary{cursor:pointer;color:var(--lilac);font-size:12px}
+.app.presentation-mode .pitem blockquote{margin:7px 0 0;padding:7px 11px;border-left:3px solid var(--violet);background:var(--s2);border-radius:0 8px 8px 0;font-size:12.5px;line-height:1.5}
+.app.presentation-mode .pitem blockquote small{display:block;color:var(--faint);font-family:var(--mono);font-size:11px;margin-top:3px}
+.app.presentation-mode .pfoot{font-size:11.5px;color:var(--faint);margin-top:18px}
+.app.presentation-mode .source-chip{font-size:10.5px;border:1px solid var(--line2);padding:2px 8px}
+.app.presentation-mode .channel-grid,.app.presentation-mode .people-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.app.presentation-mode .channel-card,.app.presentation-mode .person-card{padding:13px 14px;border-radius:16px;background:rgba(255,255,255,.035);box-shadow:inset 0 0 0 1px var(--line)}
+.app.presentation-mode .channel-name{display:block;font-size:10px;color:var(--cyan);font-weight:700;margin-bottom:8px}
+.app.presentation-mode .person-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.app.presentation-mode .story-context{color:var(--dim);font-size:12px;line-height:1.5;margin:6px 0}
+.app.presentation-mode .disc{margin-top:9px;padding-top:7px;border-top:1px dashed var(--line2)}
+.app.presentation-mode .disc>b{display:block;font-size:11px;color:var(--lilac);margin-bottom:2px}
+.app.presentation-mode .disc .none{font-size:11.5px;color:var(--faint);line-height:1.5}
+.app.presentation-mode .disc .why{font-size:12px;color:var(--dim);line-height:1.5;margin-top:7px}
+.app.presentation-mode .disc blockquote{margin:6px 0 0;padding:6px 10px;border-left:3px solid var(--violet);background:var(--s2);border-radius:0 8px 8px 0;font-size:12.5px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere;user-select:text}
+.app.presentation-mode .disc blockquote small{display:block;color:var(--faint);font-family:var(--mono);font-size:10.5px;margin-bottom:3px;white-space:normal}
+.app.presentation-mode .presentation-tag{font-size:10px;color:var(--cyan);font-weight:700;margin-bottom:4px}
+.app.presentation-mode .presentation-call .tool{color:var(--dim)}
+.app.presentation-mode #evid,.app.presentation-mode .right-stack>.resize-handle{display:none}
+.app.presentation-mode .tn{display:block}
+.app.presentation-mode .tn b{color:var(--faint)}
+.app.presentation-mode .tn.hold{color:var(--lilac)}
+.app.presentation-mode .tag.g-partner{color:var(--orange);border-color:rgba(251,146,60,.5)}
+.app.presentation-mode .tag.g-room{color:var(--dim);border-color:var(--line2)}
+.app.presentation-mode .resize-handle{display:none}
+.app.presentation-mode .main{grid-template-columns:252px minmax(0,1fr) 330px}
+.app.presentation-mode .right-stack{display:flex;flex-direction:column;align-items:stretch;gap:7px;min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden}
+.app.presentation-mode .right-stack>.panel{flex:0 0 auto;min-height:auto;overflow:visible}
+.app.presentation-mode .right-stack>.insp{flex:1 0 auto}
+.app.presentation-mode .tabs,.app.presentation-mode .sub{flex-shrink:0}
+.app.presentation-mode .pane.fit-content{flex:0 1 auto;min-height:0}
+.app.presentation-mode .center>.pane.fit-content{min-height:200px}  /* an open evidence block never squeezes the stage away */
+.app.presentation-mode .pane.fit-content .thr{padding-bottom:18px}
+@media (min-width:1760px){.app.presentation-mode .main{grid-template-columns:272px minmax(0,1fr) 348px}}
+/* wide screens: the evidence is a column beside the stage, always open (the original's council layout) */
+@media (min-width:1760px){
+  .app.presentation-mode .center.with-ev{display:grid;grid-template-columns:minmax(0,1fr) minmax(380px,34%);grid-template-rows:auto auto auto minmax(0,1fr);column-gap:7px}
+  .app.presentation-mode .center.with-ev>.tabs,.app.presentation-mode .center.with-ev>.sub{grid-column:1/-1}
+  .app.presentation-mode .center.with-ev>.mail{grid-column:1;grid-row:3}
+  .app.presentation-mode .center.with-ev>.pane{grid-column:1;grid-row:4}
+  .app.presentation-mode .center.with-ev>.evstrip{grid-column:2;grid-row:3/5;margin-top:0;overflow:auto}
+  .app.presentation-mode .evb{grid-template-columns:minmax(0,1fr);gap:14px}
+  .app.presentation-mode .evt .tw{max-height:none}
+  .app.presentation-mode .evtg{display:none}
+}
+@media (max-width:1380px){.app.presentation-mode .main{grid-template-columns:232px minmax(0,1fr) 296px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top" id="top"></header>
+  <section class="ctl" id="ctl"></section>
+  <section class="charter" id="charter"></section>
+  <main class="main" id="main">
+    <aside class="panel roster" id="roster"></aside>
+    <div class="resize-handle" data-resize="roster" role="separator" aria-orientation="vertical" tabindex="0" aria-label="调整同事栏宽度"><button type="button" class="collapse-toggle" data-collapse="roster" aria-expanded="true" aria-label="收起同事栏">‹</button></div>
+    <section class="center">
+      <nav class="tabs" id="tabs" role="tablist"></nav>
+      <div class="sub" id="sub"></div>
+      <div class="mail" id="mail"></div>
+      <div class="pane" id="pane"></div>
+      <div class="evstrip" id="evstrip" hidden></div>
+    </section>
+    <div class="right-stack">
+      <div class="resize-handle" data-resize="evid" role="separator" aria-orientation="vertical" tabindex="0" aria-label="调整业务摘要栏宽度"><button type="button" class="collapse-toggle" data-collapse="evid" aria-expanded="true" aria-label="收起业务摘要栏">›</button></div>
+      <aside class="panel evid" id="evid"></aside>
+      <div class="resize-handle" data-resize="insp" role="separator" aria-orientation="vertical" tabindex="0" aria-label="调整人员详情栏宽度"><button type="button" class="collapse-toggle" data-collapse="insp" aria-expanded="true" aria-label="收起人员详情栏">›</button></div>
+      <aside class="panel insp" id="insp"></aside>
+    </div>
+  </main>
+  <section class="wait" id="wait"></section>
+  <footer class="foot" id="foot"></footer>
+</div>
+<script id="case-data" type="application/json">__CASE_DATA__</script>
+<script id="scene-data" type="application/json">__SCENE_DATA__</script>
+<script>
+(function () {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const D = JSON.parse($('#case-data').textContent);
+const E = D.events, N = E.length, M = D.meta;
+const PRESENT = M.presentation_mode === true;
+const PRESENTATION = D.presentation || {};
+const PU = PRESENTATION.ui || {};
+/* 泳道表头「协作方式」用的简称，全称放在 title 里（悬停可见）。写在模板里：已生成的页面重新套模板就能用上；英文版由 translate_ui 换成英文简称 */
+const SRC_SHORT = Object.assign({ slack: 'Slack', meeting: '会议', email: '邮件', hubspot: '工单', github: 'GitHub', femini: '后台' }, PU.sourceShort || {});
+const P = {}, LANE = {}, IDX = {};
+D.people.forEach((p, i) => { P[p.id] = p; LANE[p.id] = i; });
+E.forEach((e, i) => { IDX[e.id] = i; });
+const NH = D.people.filter(p => p.kind === 'human').length, NB = D.people.length - NH;
+const R = document.documentElement.style;
+R.setProperty('--n', D.people.length);
+
+const SYS = { github: { n: 'GitHub', k: 'github', c: '#C4B5FD' }, hubspot: { n: 'HubSpot', k: 'hubspot', c: '#FB923C' }, slack: { n: 'Slack', k: 'slack', c: '#34D399' }, femini: { n: 'FeedMob Admin', k: 'feedmob-admin', c: '#22D3EE' }, email: { n: 'Gmail', k: 'gmail', c: '#F472B6' }, meeting: { n: 'Fireflies / Teams', k: 'fireflies/teams', c: '#FBBF24' } };
+if (PRESENT) Object.entries(PRESENTATION.sourceLabels || {}).forEach(([id, label]) => { if (SYS[id]) SYS[id].k = label; });
+const KIND = { ask: '提出', create: '新建', assign: '指派', chat: '对话', notify: '播报', comment: '评论', label: '改标签', pr: '提交代码', review: '评审', merge: '合并', close: '关单', change: '调价' };
+const TOOLN = { github: { assign: 'assigned', label: 'labeled / renamed', create: 'issue.created', comment: 'commented', review: 'review', merge: 'merged', close: 'closed', pr: 'pull_request' }, slack: 'message', hubspot: 'ticket', femini: 'proposed_change.approved', email: 'email', meeting: 'meeting' };
+const toolOf = e => { const t = TOOLN[e.src]; return typeof t === 'string' ? t : (t[e.kind] || 'event'); };
+const S = { i: PRESENT ? 0 : N - 1, playing: false, speed: 1, tz: 'bj', tab: 'council', view: PRESENT ? '3d' : 'ladder', focus: null, dim: false, follow: true, tfocus: null, timer: null };
+
+/* 时间 */
+const TZ = { bj: 8, utc: 0 }, WD = '日一二三四五六', pad = n => String(n).padStart(2, '0');
+function fmt(ts) { const d = new Date(Date.parse(ts) + TZ[S.tz] * 3600e3); return { m: d.getUTCMonth() + 1, d: d.getUTCDate(), hm: pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()), s: pad(d.getUTCSeconds()), wd: WD[d.getUTCDay()], md: pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()), day: d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate() }; }
+function human(ms) { let s = Math.round(ms / 1000); const d = Math.floor(s / 86400); s -= d * 86400; const h = Math.floor(s / 3600); s -= h * 3600; const m = Math.floor(s / 60); s -= m * 60; if (d) return d + ' 天' + (h ? ' ' + h + ' 小时' : ''); if (h) return h + ' 小时' + (m ? ' ' + m + ' 分' : ''); if (m) return m + ' 分' + (s ? ' ' + s + ' 秒' : ''); return s + ' 秒'; }
+const gapMs = i => i > 0 ? Date.parse(E[i].ts) - Date.parse(E[i - 1].ts) : 0;
+const tstr = e => { const f = fmt(e.ts); return f.hm + (e.prec === 'min' ? '' : ':' + f.s); };
+
+/* 每一步之后：谁手上有单子 */
+const holdAfter = [], focusT = [], marginAfter = [], tasks = [];
+(function () {
+  const bt = {}, open = {}; let ft = null, mg = null;
+  E.forEach((e, i) => {
+    if (e.ticket && e.holders) {
+      bt[e.ticket] = e.holders;
+      Object.keys(open).filter(k => k.endsWith('|' + e.ticket)).forEach(k => { const pid = k.split('|')[0]; if (!(pid in e.holders) || open[k].role !== e.holders[pid]) { open[k].e = i; delete open[k]; } });
+      Object.entries(e.holders).forEach(([pid, role]) => { const k = pid + '|' + e.ticket; if (!open[k]) { const t = { p: pid, role, ticket: e.ticket, s: i, e: null }; open[k] = t; tasks.push(t); } });
+    }
+    (e.clear || []).forEach(t => { delete bt[t]; Object.keys(open).filter(k => k.endsWith('|' + t)).forEach(k => { open[k].e = i; delete open[k]; }); });
+    if (e.ticket) ft = e.ticket;
+    if (e.margin != null) mg = e.margin;
+    const u = {}; Object.values(bt).forEach(m => Object.entries(m).forEach(([p, r]) => { u[p] = u[p] ? (u[p].includes(r) ? u[p] : u[p] + '、' + r) : r; }));
+    holdAfter.push(u); focusT.push(ft); marginAfter.push(mg);
+  });
+})();
+const firstSeen = {}, firstHold = {};
+E.forEach((e, i) => { [e.actor].concat(e.to || []).forEach(p => { if (firstSeen[p] == null) firstSeen[p] = i; }); Object.keys(holdAfter[i]).forEach(p => { if (firstHold[p] == null) firstHold[p] = i; }); });
+const sysCount = i => { const c = {}; for (let k = 0; k <= i; k++) E[k].srcs.forEach(s => { c[s] = (c[s] || 0) + 1; }); return c; };
+function pstate(p) { const hold = holdAfter[S.i]; if (p in hold) return ['hold', '持有 ' + hold[p]]; if (firstSeen[p] == null || firstSeen[p] > S.i) return ['off', '未登场']; if (firstHold[p] != null && firstHold[p] <= S.i) return ['done', '已交棒']; return ['idle', '出场']; }
+
+/* 小零件 */
+const initials = p => { if (p.kind === 'bot') return '机'; const w = p.name.split(/\s+/); return (w.length > 1 ? w[0][0] + w[1][0] : w[0].slice(0, 2)).toUpperCase(); };
+const av = (id, cls, st) => { const p = P[id]; return `<span class="av ${p.kind === 'bot' ? 'bot ' : ''}${cls || ''}" style="--c:${p.color}" data-s="${st || 'idle'}">${esc(initials(p))}</span>`; };
+// the campaign's click URL ID, which the business team knows it by (in FeedMob Admin a campaign usually has one)
+const clickUrls = () => (M.click_urls || []).length ? `<code>#${M.click_urls.map(esc).join(' #')}</code>` : '';
+const SRC_IDS = ['github', 'hubspot', 'slack', 'femini', 'email', 'meeting'];
+const SRC_NONE = { github: '没有相关工单', hubspot: '没有相关工单', slack: '没有相关消息', femini: '没有调价记录', email: '没有相关邮件', meeting: '没有相关会议' };
+const SRC_NONE_TIP = '查过了，没有找到和这个活动相关的记录';
+const noneChip = id => `<span class="sc none" title="${SRC_NONE_TIP}">○ <b>${esc(SYS[id].n)}</b> <span class="w">${SRC_NONE[id]}</span></span>`;
+const sourceReadChip = id => {
+  const r = (D.source_reads || {})[id];
+  if (!r) return '';
+  const ok = r.status === 'ok', symbol = ok ? '✓' : (r.status === 'limited' ? '◐' : '○');
+  return `<span class="sc ${ok ? 'ok' : 'none'}" title="${esc(r.note)}">${symbol} <b>${esc(r.name)}</b>${ok ? '' : ` <span class="w">${esc(r.word)}</span>`}</span>`;
+};
+const sysChip = (k, extra) => `<span class="chip src-chip" style="--sc:${SYS[k].c}">${SYS[k].k}${extra || ''}</span>`;
+const svgPlay = '<svg viewBox="0 0 22 22"><path d="M6 3.5v15l13-7.5z"/></svg>', svgPause = '<svg viewBox="0 0 22 22"><path d="M5 3.5h4.5v15H5zm7.5 0H17v15h-4.5z"/></svg>';
+
+/* 顶部 */
+function buildTop() {
+  if (PRESENT) {
+    const used = new Set(E.flatMap(e => e.srcs || [e.src])), listed = D.sources.filter(s => used.has(s.id));
+    const chips = listed.map(s => sourceReadChip(s.id) || `<span class="sc ok">✓ <b>${esc(s.name)}</b></span>`).join('') +
+      SRC_IDS.filter(id => !listed.some(s => s.id === id)).map(id => sourceReadChip(id) || noneChip(id)).join('');
+    $('#top').innerHTML = `<div class="brand"><span class="mark"><i></i></span><div><b>${esc(PU.brand)}</b><small>${esc(PU.subbrand)}</small></div></div>
+      <div class="room"><em>${esc(PU.room)}</em><b title="${esc(M.campaign || M.title)}">${esc(M.campaign || (M.client + ' · ' + M.title))}</b>${clickUrls()}</div>
+      <div class="srcs">${chips}</div>
+      <div class="jobs" id="jobs">${M.hide_acts ? '' : D.acts.map(a => `<button class="pill-b" data-act="${a.id}">${esc(a.name)}</button>`).join('')}<button class="pill-b" id="tzb" style="margin-left:8px;border:1px solid var(--line2)">${esc(PU.timezone)}</button></div>
+      <span class="picker" id="picker" hidden></span>`;
+    return;
+  }
+  const st = { github: 'ok', hubspot: 'limited', slack: 'limited', femini: 'ok' };
+  const sym = { ok: '✓', limited: '◐', planned: '○' }, word = { ok: '正常', limited: '受限', planned: '未纳入' };
+  const n = sysCount(N - 1);
+  const chips = D.sources.map(s => sourceReadChip(s.id) || (n[s.id] ? `<span class="sc ${s.status}${s.status === 'planned' ? ' pl' : ''}" title="${esc(s.name)} · ${word[s.status]}">${sym[s.status]} <b>${esc(s.name)}</b> <span class="w">${word[s.status]}</span></span>` : noneChip(s.id))).join('');
+  $('#top').innerHTML = `<div class="brand"><span class="mark"><i></i></span><div><b>案卷回放</b><small>Case Console</small></div></div>
+    <div class="room"><em>活动</em><b title="${esc(M.title)}">${esc(M.campaign || M.title)}</b>${clickUrls()}</div>
+    <div class="srcs">${chips}</div>
+    <div class="jobs" id="jobs">${D.acts.map(a => `<button class="pill-b" data-act="${a.id}">${esc(a.name)}</button>`).join('')}<button class="pill-b" id="tzb" style="margin-left:8px;border:1px solid var(--line2)">北京时间</button></div>
+    <span class="picker" id="picker" hidden></span>`;
+}
+function buildCharter() {
+  if (PRESENT) {
+    $('.app').classList.add('no-charter');
+    $('#charter').hidden = true;
+    return;
+  }
+  if (M.hide_charter === true) {
+    $('.app').classList.add('no-charter');
+    $('#charter').hidden = true;
+    return;
+  }
+  const ok = D.charter.filter(c => c.ok).length;
+  $('#charter').innerHTML = `<span class="lb">回放状态</span><span class="ct">${ok}/${D.charter.length}</span>` +
+    D.charter.map(c => `<span class="chip ${c.ok ? 'ok' : 'no'}">${c.ok ? '✓' : '○'} ${esc(c.t)}</span>`).join('') +
+    `<span class="keys"><span class="kbd">空格</span>播放 <span class="kbd">←</span><span class="kbd">→</span>上一步/下一步 <span class="kbd">G</span>跳到最新</span>`;
+}
+function buildCtl() {
+  const jumpLabel = PRESENT ? `${esc(PU.jumpLatest)}<kbd>G</kbd>` : `跳到最新<kbd>G</kbd>`;
+  $('#ctl').innerHTML = `<button class="play" id="play" aria-label="播放"></button>
+    <div class="clock"><div class="t" id="ck1"></div><div class="s" id="ck2"></div></div>
+    <div class="strip" id="strip" aria-label="时间轴，点击或拖动"></div>
+    <div class="spd" id="spd">${[1, 2, 3].map(x => `<button class="pill-b" data-x="${x}">${x}x</button>`).join('')}</div>
+    <button class="jump" id="jump">${jumpLabel}</button>`;
+  const hmax = e => e.baton ? 100 : (e.compact ? 34 : 66);
+  let h = '<div class="bars"></div>';
+  if (!PRESENT) h += '<div class="after" style="width:56px"><em>NOW</em>尚未发生</div>';
+  $('#strip').innerHTML = h;
+  const bars = $('#strip .bars'); bars.style.right = PRESENT ? '8px' : '62px';
+  const drawBars = () => {
+    const width = bars.getBoundingClientRect().width;
+    const count = Math.min(N, Math.max(1, Math.floor(width / 2)));
+    const maxGap = E.length > 90 ? 1 : 3;
+    const gap = count > 1 ? Math.min(maxGap, Math.max(0, (width - count) / (count - 1))) : 0;
+    const itemWidth = count === 1 ? width : Math.max(1, width / count - gap);
+    let content = '';
+    for (let j = 0; j < count; j++) {
+      const start = Math.floor(j * N / count), end = Math.floor((j + 1) * N / count) - 1;
+      let peak = 0;
+      for (let i = start; i <= end; i++) peak = Math.max(peak, hmax(E[i]));
+      const groupWidth = width * (end - start + 1) / N;
+      const barWidth = count === N ? itemWidth : (width ? Math.min(groupWidth, Math.max(1, groupWidth - gap)) : 0);
+      // hover text has no UI wording, so translate_ui needs no new entry: a single step keeps its own title, a merged bar adds its step range
+      const tip = start === end ? (E[start].title || '') : `${start + 1}–${end + 1} · ${E[start].title || ''}`;
+      content += `<i class="b" data-start="${start}" data-end="${end}" style="--h:${peak}%;left:calc((${start} + ${end} + 1) / 2 / ${N} * 100%);width:${barWidth}px" title="${esc(tip)}"></i>`;
+    }
+    if (PRESENT) {
+      (D.acts || []).slice(1).forEach(a => { const index = E.findIndex(e => e.act === a.id); if (index > 0) content += `<i class="actsep" style="left:calc(${index} / ${N} * 100%)"></i>`; });
+    } else {
+      const a2 = E.findIndex(e => e.act === 'a2');
+      content += `<i class="actsep" style="left:calc(${a2} / ${N} * 100%)"></i>`;
+    }
+    content += '<i class="head" id="head"></i>';
+    E.forEach((e, i) => { if (e.baton) content += `<i class="dot" style="left:calc((${i} + .5) / ${N} * 100%)"></i>`; });
+    bars.innerHTML = content;
+  };
+  drawBars();
+  let down = false, resizeTimer = 0;
+  const pick = x => { const r = bars.getBoundingClientRect(); if (r.width) go(Math.floor((x - r.left) / r.width * N)); };
+  const st = $('#strip');
+  st.addEventListener('pointerdown', e => { down = true; pause(); st.setPointerCapture(e.pointerId); pick(e.clientX); });
+  st.addEventListener('pointermove', e => { if (down) pick(e.clientX); });
+  st.addEventListener('pointerup', () => { down = false; });
+  const scheduleRedraw = () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { drawBars(); updCtl(); }, 100);
+  };
+  addEventListener('resize', scheduleRedraw);
+  if (window.ResizeObserver) new ResizeObserver(scheduleRedraw).observe(st);
+}
+function updCtl() {
+  const e = E[S.i], f = fmt(e.ts);
+  $('#ck1').textContent = `${f.m}月${f.d}日 ${f.hm}${e.prec === 'min' ? '' : ':' + f.s}`;
+  const span = human(Date.parse(e.ts) - Date.parse(E[0].ts));
+  $('#ck2').textContent = PRESENT ? `${S.i + 1} / ${N} ${PU.steps || ''} · ${e.presentation_tag || ''}` : `${S.i + 1} / ${N} 步 · 已过 ${span}`;
+  $('#play').innerHTML = S.playing ? svgPause : svgPlay;
+  $$('#strip .b').forEach(b => {
+    const start = +b.dataset.start, end = +b.dataset.end;
+    b.classList.toggle('on', start <= S.i); b.classList.toggle('cur', start <= S.i && S.i <= end);
+  });
+  $('#head').style.left = `calc((${S.i} + .5) / ${N} * 100%)`;
+  $$('#spd button').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.x === S.speed)));
+  $$('#jobs [data-act]').forEach(b => b.classList.toggle('on', b.dataset.act === e.act));
+  $('#tzb').textContent = S.tz === 'bj' ? '北京时间' : 'UTC';
+}
+
+/* 左侧成员 */
+const GROUPS = [['team', PU.teamTitle || PU.peopleTitle], ['partner', PU.partnerTitle], ['room', PU.roomTitle]];
+function lastOf(p) { for (let k = S.i; k >= 0; k--) { const e = E[k]; if (e.actor === p || (e.to || []).includes(p)) return k; } return -1; }
+function buildRoster() {
+  if (PRESENT) {
+    const grp = (title, list) => `<div class="grp">${esc(title)} · ${list.length}</div>` + list.map(p => `<button class="mem" data-p="${p.id}"><span class="av-w"></span><div><div class="nm">${esc(p.name)} <span class="tag g-${esc(p.group || 'team')}">${esc(p.tag || PU.personTag)}</span></div><div class="rl">${esc(p.role)}</div><div class="tn"></div></div></button>`).join('');
+    $('#roster').innerHTML = GROUPS.map(([g, title]) => { const list = D.people.filter(p => (p.group || 'team') === g); return list.length ? grp(title, list) : ''; }).join('');
+    return;
+  }
+  const grp = (t, list) => `<div class="grp">${t}</div>` + list.map(p => `<button class="mem" data-p="${p.id}"><span class="av-w"></span><div><div class="nm">${esc(p.name)} <span class="tag ${p.kind === 'bot' ? '' : 'h'}">${p.kind === 'bot' ? '机器人' : (p.external ? '合作方' : '同事')}</span></div><div class="rl">${esc(p.job_title || p.role)}</div><div class="tn"></div></div></button>`).join('');
+  $('#roster').innerHTML = grp(`同事 · ${NH}`, D.people.filter(p => p.kind === 'human')) + grp(`机器人 · ${NB}`, D.people.filter(p => p.kind === 'bot')) +
+    `<div class="legend"><span><i style="--c:var(--violet)"></i>手上有单子</span><span><i style="--c:var(--good)"></i>已交棒</span><span><i style="--c:rgba(255,255,255,.3)"></i>出场/未登场</span></div>`;
+}
+function updRoster() {
+  const cur = S.focus || E[S.i].actor;
+  $$('#roster .mem').forEach(m => {
+    const p = m.dataset.p, [st, tx] = pstate(p);
+    m.querySelector('.av-w').innerHTML = av(p, '', st);
+    const tn = m.querySelector('.tn');
+    if (PRESENT) {
+      const k = lastOf(p);
+      m.querySelector('.av-w').innerHTML = av(p, '', k < 0 ? 'off' : (p === cur ? 'hold' : 'idle'));
+      tn.className = 'tn' + (k === S.i ? ' hold' : '');
+      tn.innerHTML = `<b>${esc(PU.nowLabel)}</b> ${esc(k < 0 ? PU.notYet : E[k].title)}`;
+    }
+    else { tn.className = 'tn ' + st; tn.innerHTML = `<b>此刻</b>${esc(tx)}`; }
+    m.classList.toggle('sel', p === cur);
+  });
+}
+
+/* 中栏：页签 */
+function buildTabs() {
+  if (PRESENT) {
+    const tabs = [['council', PU.tabs.story, N], ['tasks', PU.tabs.workstreams, (PRESENTATION.workstreams || []).length], ['conn', PU.tabs.channels, D.sources.length], ['acc', PU.tabs.people, D.people.length]];
+    if (PRESENTATION.progress && PU.tabs.progress) tabs.splice(2, 0, ['progress', PU.tabs.progress, PRESENTATION.progress.items.length]);
+    $('#tabs').innerHTML = tabs.map(t => `<button class="tab" role="tab" data-t="${t[0]}" aria-selected="${S.tab === t[0]}">${esc(t[1])}${t[2] ? `<small>${t[2]}</small>` : ''}</button>`).join('');
+    return;
+  }
+  const tabs = [['council', 'Council · 总览'], ['tasks', 'Tasks · 任务'], ['conn', 'Connections · 数据来源'], ['acc', 'People · 人员职责']];
+  $('#tabs').innerHTML = tabs.map(t => `<button class="tab" role="tab" data-t="${t[0]}" aria-selected="${S.tab === t[0]}">${t[1]}${t[0] === 'conn' ? `<small>${D.sources.length}</small>` : ''}</button>`).join('');
+}
+function buildSub() {
+  const sub = $('#sub');
+  if (PRESENT && S.tab === 'council') {
+    sub.style.display = 'flex';
+    sub.innerHTML = '<span class="vsw">' + [['ladder', PU.views.timeline], ['thread', PU.views.conversation], ['3d', PU.views.space], ['log', PU.views.log || 'Log']].map(([k, name]) => `<button class="pill-b" data-v="${k}" aria-pressed="${S.view === k}">${esc(name)}</button>`).join('') + `</span><span class="jt"><b>${esc(M.no)} · ${esc(M.title)}</b> · ${esc(PU.replayHint)}</span>`;
+    return;
+  }
+  if (S.tab !== 'council') { sub.innerHTML = ''; sub.style.display = 'none'; return; }
+  sub.style.display = 'flex';
+  sub.innerHTML = '<span class="vsw">' + ['ladder|Ladder · 梯形图', 'thread|Thread · 对话', 'log|Log · 流水', '3d|3D · 空间'].map(x => { const [k, n] = x.split('|'); return `<button class="pill-b" data-v="${k}" aria-pressed="${S.view === k}">${n}</button>`; }).join('') +
+    `</span><label class="dim"><input type="checkbox" id="dimc"${S.dim ? ' checked' : ''}>Dim others</label><span class="jt"><b>${esc(M.no)} · ${esc(M.title)}</b>　只读回放 · ${N} 步 · 0 次写入</span>`;
+}
+function updMail() {
+  const m = $('#mail');
+  if (!(S.tab === 'council' && S.view === 'ladder')) { m.style.display = 'none'; return; }
+  m.style.display = 'block';
+  const c = sysCount(S.i), cur = E[S.i], prev = S.i > 0 ? E[S.i - 1] : null;
+  if (PRESENT) {
+    const used = D.sources.filter(s => E.some(e => (e.srcs || [e.src]).includes(s.id)));
+    const ln = (e, st) => `<span><i>${tstr(e)}</i> ▸ ${esc(P[e.actor].short)} · ${esc(e.presentation_tag || SYS[e.src].k)} <em>${esc(st)}</em></span>`;
+    m.innerHTML = `<div class="hd"><b>MAILROOM</b> ${esc(PU.mailroomSub)} · ${esc(M.client)}</div><div class="cnt"><div class="cn"><span>${esc(PU.mailOffset)}</span><b>#${pad(S.i + 1)}</b></div>${used.map(s => `<div class="cn g"><span>${esc(s.name)}</span><b>${c[s.id] || 0}</b></div>`).join('')}</div><div class="lg">${prev ? ln(prev, PU.mailRead) : ''}${ln(cur, PU.mailJustRead)}</div>`;
+    fitMail();
+    return;
+  }
+  const line = (e, st) => `<span><i>${tstr(e)}</i> ▸ ${esc(P[e.actor].short)} · ${esc(KIND[e.kind])} <em>${st}</em></span>`;
+  m.innerHTML = `<div class="hd"><b>MAILROOM</b> 已读到的事件 · ${esc(M.no)}</div>
+    <div class="cnt"><div class="cn"><span>OFFSET</span><b>#${pad(S.i + 1)}</b></div>
+    ${D.sources.filter(s => s.status !== 'planned').map(s => `<div class="cn g"><span title="${esc(SYS[s.id].n)}">${esc(SYS[s.id].k.toUpperCase()).replace('/', '/<wbr>')}</span><b>${c[s.id] || 0}</b></div>`).join('')}
+    <div class="cn"><span>WRITES</span><b style="color:var(--good)">0</b></div></div>
+    <div class="lg">${prev ? line(prev, '已读') : ''}${line(cur, '刚读到')}</div>`;
+  fitMail();
+}
+// the counters share one row like the original's mailroom; a column too narrow for them all splits them into even rows instead of letting them spill out
+function fitMail() {
+  const c = $('#mail .cnt'); if (!c || !c.clientWidth) return;
+  const n = c.children.length, rows = Math.max(1, Math.ceil(n * 92 / c.clientWidth)), cols = String(Math.ceil(n / rows));
+  if (c.style.getPropertyValue('--cols') !== cols) c.style.setProperty('--cols', cols);
+}
+
+/* Ladder */
+function visDim(e) { if (!S.dim || !S.focus) return false; return !(e.actor === S.focus || (e.to || []).includes(S.focus)); }
+function railsHTML(e, i) {
+  const LW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lw')) || 44;
+  const prev = i > 0 ? holdAfter[i - 1] : {}, hold = holdAfter[i]; let h = '';
+  D.people.forEach((p, li) => { const b = p.id in prev, k = p.id in hold, x = li * LW + LW / 2, st = `left:${x}px;--c:${p.color}`; if (b && k) h += `<i class="hb f" style="${st}"></i>`; else if (!b && k) h += `<i class="hb s" style="${st}"></i>`; else if (b && !k) h += `<i class="hb e" style="${st}"></i>`; });
+  (e.to || []).forEach(t => { h += `<i class="tg" style="left:${LANE[t] * LW + LW / 2}px;--c:${P[t].color}"></i>`; });
+  return h + `<i class="nd" style="left:${LANE[e.actor] * LW + LW / 2}px;--c:${P[e.actor].color}"></i>`;
+}
+function discHTML(e) {
+  if (!e.discussion) return '';
+  if (!e.discussion.length) return `<div class="disc"><b>${esc(PU.discussionTitle)}</b><div class="none">${esc(PU.discussionNone)}</div></div>`;
+  let h = `<div class="disc"><b>${esc(PU.discussionTitle)} · ${e.discussion.length}</b>`;
+  e.discussion.forEach(d => { const f = fmt(d.ts); h += `<blockquote><small>${esc(d.tag)} · ${esc(d.who)} · ${f.md} ${f.hm} · ${esc(d.when)}</small>${esc(d.quote)}${d.translation ? `<div class="xlat"><b>${esc(PU.translationLabel)}</b>${esc(d.translation)}</div>` : ''}</blockquote>`; });
+  if (e.discussion_reason) h += `<div class="why">${esc(PU.reasonLabel)}${esc(e.discussion_reason)}</div>`;
+  return h + '</div>';
+}
+function cardHTML(e) {
+  const p = P[e.actor];
+  if (PRESENT) {
+    const tag = e.presentation_tag || (PRESENTATION.sourceLabels || {})[e.src] || '';
+    const quote = e.quote || (e.original && e.original.text) || '';
+    let b = `<div class="lbl">${esc(tag)}</div><h4>${esc(e.title)}</h4>`;
+    if (e.origin) b += `<div class="origin">${esc(e.origin)}</div>`;
+    if (e.presentation_context) b += `<p class="story-context">${esc(e.presentation_context)}</p>`;
+    b += discHTML(e);
+    if (!quote && e.text) b += `<p>${esc(e.text)}</p>`;
+    if (quote) b += `<div class="qt">${esc(quote)}</div>`;
+    const translated = e.translation || (e.original && e.original.translation) || '';
+    if (translated && translated.trim() !== quote.trim()) b += `<div class="xlat"><b>${esc(PU.translationLabel)}</b>${esc(translated)}</div>`;
+    if ((e.to || []).length) b += `<div class="addr">${esc(PU.handoff)} ${e.to.map(t => `<span class="p">${av(t, 'xs', 'idle')}${esc(P[t].short)}</span>`).join('')}</div>`;
+    return `<div class="cname" style="--c:${p.color}">${av(e.actor, 'sm', 'idle')}<b>${esc(p.name.split(' ')[0])}</b><span>${esc(tag)}</span></div><div class="bub">${b}</div>`;
+  }
+  let b = `<div class="lbl">${e.quote ? 'SAYS · 原话' : '做了什么'}</div><h4>${esc(e.title)}</h4>`;
+  if (e.text) b += `<p>${esc(e.text)}</p>`;
+  if (e.quote) b += `<div class="qt">${esc(e.quote)}</div>`;
+  if (e.translation) b += `<div class="xlat"><b>${esc(e.translation_label || '')}</b>${esc(e.translation)}</div>`;
+  if (e.commentary) b += `<details class="editorial"><summary>${esc(e.commentary_label || '')}</summary><div>${esc(e.commentary)}</div></details>`;
+  if ((e.to || []).length) b += `<div class="addr">交给 / 对 ${e.to.map(t => `<span class="p">${av(t, 'xs', 'idle')}${esc(P[t].short)}</span>`).join('')}</div>`;
+  let co = '';
+  if (e.flag) co = `<div class="co ${e.flag}"><b>${e.flag === 'problem' ? 'PROBLEM FOUND · 发现问题' : 'CAUTION · 注意'}</b>${esc(e.flag_text)}</div>`;
+  b += `<div class="refl">${esc(e.ref || '')}${e.link ? ` <a href="${esc(e.link)}" target="_blank" rel="noopener">打开原件</a>` : ''}</div>`;
+  return `<div class="cname" style="--c:${p.color}">${av(e.actor, 'sm', 'idle')}<b>${esc(p.name.split(' ')[0])}</b><span>${esc(KIND[e.kind])}</span></div><div class="bub">${b}</div>${co}`;
+}
+function cardLeft(e) {
+  const LW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--lw')) || 44, CW = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--card')) || 318;
+  const W = D.people.length * LW, ax = LANE[e.actor] * LW + LW / 2;
+  if (ax + 14 + CW <= W) return ax + 14;
+  return Math.max(0, ax - 14 - CW);
+}
+function rowHTML(e, i) {
+  const f = fmt(e.ts), left = cardLeft(e);
+  if (PRESENT) {
+    const label = e.presentation_tag || (PRESENTATION.sourceLabels || {})[e.src] || '';
+    return `<div class="lrow" data-i="${i}"><div class="tcol"><span class="no">${pad(i + 1)}</span><span class="hm">${f.hm}</span><span class="dt">${f.md}</span></div><div class="rails">${railsHTML(e, i)}</div><div class="card" style="margin-left:${left}px">${cardHTML(e)}</div><div class="calls presentation-call" style="padding-left:${left}px"><span class="tool">${esc(label)}</span><span class="arr"></span><span class="sp">${e.srcs.map(s => sysChip(s)).join('')}</span></div></div>`;
+  }
+  return `<div class="lrow" data-i="${i}">
+    <div class="tcol"><span class="no">${pad(i + 1)}</span><span class="hm">${e.prec === 'min' ? '≈' : ''}${f.hm}</span><span class="dt">${f.md} 周${f.wd}</span></div>
+    <div class="rails">${railsHTML(e, i)}</div>
+    <div class="card" style="margin-left:${left}px">${cardHTML(e)}</div>
+    <div class="calls" style="padding-left:${left}px"><span class="tool">${SYS[e.src].k}<i>·</i>${esc(toolOf(e))}<i>read</i></span><span class="res">${esc((e.ref || '').split(' · ')[0].replace(/^Brain /, ''))}</span><span class="arr"></span><span class="sp">${e.srcs.map(s => sysChip(s)).join('')}</span></div></div>`;
+}
+function fitLanes() {
+  // like the original's lanes, which shrink to share the stage. Many people on a narrow stage: lanes keep only the avatar
+  // (names are in the roster and the tooltip) and the time column and sources rail narrow, so nothing scrolls sideways
+  const root = document.documentElement, pane = $('#pane'), n = Math.max(1, D.people.length);
+  ['--lw', '--tw', '--sw'].forEach(k => root.style.removeProperty(k));
+  const cs = getComputedStyle(root), num = k => parseFloat(cs.getPropertyValue(k)) || 0, max = num('--lw') || 44;
+  let lw = Math.floor((pane.clientWidth - num('--tw') - num('--sw') - 4) / n);
+  const tight = lw < 36;
+  if (tight) { root.style.setProperty('--tw', '58px'); root.style.setProperty('--sw', '112px'); lw = Math.floor((pane.clientWidth - 58 - 112 - 4) / n); }
+  root.style.setProperty('--lw', Math.max(28, Math.min(max, lw)) + 'px');
+  S.tight = tight;
+}
+function buildLadder() {
+  if (PRESENT) {
+    fitLanes();
+    const heads = D.people.map(p => `<div class="lh" data-p="${p.id}" style="--c:${p.color}" title="${esc(p.name)} · ${esc(p.role)}">${av(p.id, 'sm', 'idle')}<span class="nm">${esc(p.short)}</span><span class="ltg">${esc(p.tag || PU.personTag)}</span><span class="st"></span></div>`).join('');
+    const sb = D.sources.filter(s => E.some(e => (e.srcs || [e.src]).includes(s.id))).map(s => `<span class="sx" data-k="${s.id}" title="${esc(s.name)}"><span class="t">${esc(SRC_SHORT[s.id] || s.name)}</span></span>`).join('');
+    const segs = GROUPS.map(([g, title]) => [title, D.people.filter(p => (p.group || 'team') === g).length]).filter(x => x[1]);
+    let h = `<div class="lad${S.tight ? ' tight' : ''}"><div class="lhd"><div class="gl" style="grid-column:2;width:calc(var(--n)*var(--lw))">${segs.map(([t, n]) => `<span title="${esc(t)}" style="width:calc(${n}*var(--lw));overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${esc(t)}</span>`).join('')}</div><div class="gl" style="grid-column:3"><span>${esc(PU.channelsTitle)}</span></div><div class="tm">${esc(PU.timelineTitle)}</div><div class="lanes">${heads}</div><div class="sbx">${sb}</div></div>`;
+    E.forEach((e, i) => { h += rowHTML(e, i); });
+    $('#pane').className = 'pane'; $('#pane').innerHTML = h + '</div>';
+    return;
+  }
+  const heads = D.people.map(p => `<div class="lh" data-p="${p.id}" style="--c:${p.color}" title="${esc(p.name)} · ${esc(p.role)}">${av(p.id, 'sm', 'idle')}<span class="nm">${esc(p.short)}</span><span class="ltg">${esc(p.tag)}</span><span class="st"></span></div>`).join('');
+  const sb = D.sources.filter(s => s.status !== 'planned').map(s => `<span class="sx" data-k="${s.id}" title="${esc(SYS[s.id].n)}"><span class="t">${SYS[s.id].k}</span><i>×0</i></span>`).join('');
+  let h = `<div class="lad"><div class="lhd"><div class="gl" style="grid-column:2;width:calc(var(--n)*var(--lw))"><span style="width:calc(${NH}*var(--lw))">同事 · ${NH}</span><span>机器人 · ${NB}</span></div><div class="gl" style="grid-column:3"><span>SOURCES</span></div>
+    <div class="tm">TIME</div><div class="lanes">${heads}</div><div class="sbx">${sb}</div></div>`;
+  E.forEach((e, i) => { h += rowHTML(e, i); });
+  $('#pane').className = 'pane'; $('#pane').innerHTML = h + '</div><button class="follow" id="follow" style="display:none">跟随回放 ↓</button>';
+}
+function updLadder(anim) {
+  $$('#pane .lrow').forEach(r => { const i = +r.dataset.i; r.classList.toggle('hide', i > S.i); r.classList.toggle('cur', i === S.i); r.classList.toggle('dim', PRESENT ? false : visDim(E[i])); });
+  if (PRESENT) {
+    const e = E[S.i], involved = new Set([e.actor].concat(e.to || []));
+    $$('#pane .lh').forEach(l => { const p = l.dataset.p; l.className = 'lh' + (involved.has(p) ? ' active' : '') + (p === (S.focus || '') ? ' sel' : ''); const a = l.querySelector('.av'); if (a) a.dataset.s = involved.has(p) ? 'idle' : 'off'; const s = l.querySelector('.st'); if (s) { s.className = 'st'; s.textContent = ''; } });
+    $$('#pane .sx').forEach(x => x.classList.toggle('on', (e.srcs || []).includes(x.dataset.k)));
+    return;
+  }
+  $$('#pane .lh').forEach(l => { const p = l.dataset.p, [st, tx] = pstate(p); l.className = 'lh' + (st === 'off' ? ' off' : '') + (p === (S.focus || '') ? ' sel' : ''); const a = l.querySelector('.av'); if (a) a.dataset.s = st; const s = l.querySelector('.st'); s.className = 'st ' + st; s.title = tx; s.textContent = st === 'hold' ? '持有' : (st === 'done' ? '已交棒' : (st === 'off' ? '' : '出场')); });
+  const c = sysCount(S.i); $$('#pane .sx').forEach(x => { const n = c[x.dataset.k] || 0; x.classList.toggle('on', n > 0); x.querySelector('i').textContent = '×' + n; });
+}
+
+/* Thread / Log */
+function renderThread() {
+  if (PRESENT) {
+    let h = `<div class="thr"><div class="thh">${esc(PU.conversationTitle)} <span>${esc(PU.timelineTitle)}</span></div>`, last = 0;
+    E.forEach((e, i) => {
+      if (i > S.i) return;
+      const f = fmt(e.ts), p = P[e.actor], tag = e.presentation_tag || (PRESENTATION.sourceLabels || {})[e.src] || '';
+      if (f.day !== last) { h += `<div class="day"><span>${f.m}/${f.d}</span></div>`; last = f.day; }
+      const to = (e.to || []).map(t => P[t].short).join('、');
+      const quote = e.quote || (e.original && e.original.text) || '';
+      const translated = e.translation || (e.original && e.original.translation) || '';
+      h += `<article class="msg${i === S.i ? ' cur' : ''}" data-i="${i}">${av(e.actor, '', 'idle')}<div><div class="hd"><b>${esc(p.name)}</b><span>${tstr(e)}</span>${to ? `<span>→ ${esc(to)}</span>` : ''}</div><div class="bd"><div class="presentation-tag">${esc(tag)}</div><b>${esc(e.title)}</b>${e.origin ? `<div class="origin">${esc(e.origin)}</div>` : ''}${e.presentation_context ? `<p class="story-context">${esc(e.presentation_context)}</p>` : ''}${discHTML(e)}${quote ? `<span class="qq">${esc(quote)}</span>` : (e.text ? `<p>${esc(e.text)}</p>` : '')}${translated && translated.trim() !== quote.trim() ? `<div class="xlat"><b>${esc(PU.translationLabel)}</b>${esc(translated)}</div>` : ''}</div></div></article>`;
+    });
+    $('#pane').className = 'pane'; $('#pane').innerHTML = h + '</div>';
+    return;
+  }
+  let h = `<div class="thr"><div class="thh"># case-${esc(M.no)} <span>${NH + NB} 个成员 · ${S.i + 1} 条</span></div>`, last = 0;
+  E.forEach((e, i) => {
+    if (i > S.i) return;
+    const f = fmt(e.ts), p = P[e.actor];
+    if (f.day !== last) { h += `<div class="day"><span>${f.m}月${f.d}日 周${f.wd}</span></div>`; last = f.day; }
+    const to = (e.to || []).map(t => P[t].short).join('、');
+    h += `<article class="msg${i === S.i ? ' cur' : ''}" data-i="${i}">${av(e.actor, '', 'idle')}<div><div class="hd"><b>${esc(p.name)}</b><span>${tstr(e)}</span>${to ? `<span>→ ${esc(to)}</span>` : ''}</div>
+      <div class="bd">${e.quote ? `<span class="qq">${esc(e.quote)}</span><div style="margin-top:4px;color:var(--dim);font-size:12.5px">${esc(e.title)}</div>` : esc(e.title)}${e.translation ? `<div class="xlat"><b>${esc(e.translation_label || '')}</b>${esc(e.translation)}</div>` : ''}${e.commentary ? `<details class="editorial"><summary>${esc(e.commentary_label || '')}</summary><div>${esc(e.commentary)}</div></details>` : ''}</div>
+      <div class="tl"><span class="tool">${SYS[e.src].k}<i>·</i>${esc(toolOf(e))}</span>${e.srcs.map(s => sysChip(s)).join('')}${e.flag ? `<span class="chip ${e.flag === 'problem' ? 'bad' : 'warn'}">${e.flag === 'problem' ? '▲ 问题' : '◆ 注意'}</span>` : ''}</div></div></article>`;
+  });
+  $('#pane').className = 'pane'; $('#pane').innerHTML = h + '</div>';
+}
+function renderLog() {
+  if (PRESENT) {
+    let h = '<div class="logv">';
+    E.forEach((e, i) => {
+      if (i > S.i) return; const p = P[e.actor];
+      h += `<article class="lg1${i === S.i ? ' cur' : ''}" data-i="${i}"><div class="h">${av(e.actor, 'sm', 'idle')}<b>${esc(p.name)}</b><span class="tag">${esc(e.presentation_tag || '')}</span><span class="t">${pad(i + 1)} · ${fmt(e.ts).md} ${tstr(e)}</span></div>
+        <div class="cbox"><span class="sy" style="color:${SYS[e.src].c}">${esc(SYS[e.src].k)}</span><b>${esc(e.title)}</b></div>${e.origin ? `<div class="origin" style="margin-top:6px">${esc(e.origin)}</div>` : ''}${e.presentation_context ? `<div class="tx">${esc(e.presentation_context)}</div>` : ''}${discHTML(e)}</article>`;
+    });
+    $('#pane').className = 'pane'; $('#pane').innerHTML = h + '</div>';
+    return;
+  }
+  let h = '<div class="logv">';
+  E.forEach((e, i) => {
+    if (i > S.i) return; const p = P[e.actor];
+    h += `<article class="lg1${i === S.i ? ' cur' : ''}" data-i="${i}"><div class="h">${av(e.actor, 'sm', 'idle')}<b>${esc(p.name)}</b><span class="tag">${esc(KIND[e.kind])}</span><span class="t">${fmt(e.ts).md} ${tstr(e)}</span></div>
+      <div class="cbox"><span class="sy">${SYS[e.src].k.toUpperCase()}</span><b>${esc(toolOf(e))}</b><span style="color:var(--faint)">read</span><span class="r chip ok">✓ 已读</span></div>
+      <div class="tx"><b>${esc(e.title)}</b>${e.text ? '<br>' + esc(e.text) : ''}${e.quote ? `<div class="qt">${esc(e.quote)}</div>` : ''}${e.translation ? `<div class="xlat"><b>${esc(e.translation_label || '')}</b>${esc(e.translation)}</div>` : ''}${e.commentary ? `<details class="editorial"><summary>${esc(e.commentary_label || '')}</summary><div>${esc(e.commentary)}</div></details>` : ''}</div>
+      ${e.flag ? `<div class="co ${e.flag}"><b>${e.flag === 'problem' ? 'PROBLEM FOUND · 发现问题' : 'CAUTION · 注意'}</b>${esc(e.flag_text)}</div>` : ''}</article>`;
+  });
+  $('#pane').className = 'pane'; $('#pane').innerHTML = h + '</div>';
+}
+
+/* Tasks / Connections / Accounts */
+function renderTasks() {
+  if (PRESENT) {
+    const rows = (PRESENTATION.workstreams || []).map((w, i) => `<article class="workstream"><span class="ws-num">${String(i + 1).padStart(2, '0')}</span><div><h3>${esc(w.title)}</h3><p>${esc(w.text)}</p>${w.people && w.people.length ? `<div class="ws-people">${w.people.map(n => `<span class="chip source-chip">${esc(n)}</span>`).join('')}</div>` : ''}</div></article>`).join('');
+    $('#pane').className = 'pane pad'; $('#pane').innerHTML = `<div class="story-board"><h2>${esc(PU.workstreamsTitle)}</h2><p class="tdesc">${esc(PU.workstreamsIntro)}</p>${rows}</div>`;
+    return;
+  }
+  const tf = S.tfocus;
+  const fl = `<div class="tfl"><button class="e${tf ? '' : ' on'}" data-tf="">Everyone</button>${D.people.map(p => `<button class="f${tf && tf !== p.id ? ' off' : ''}" data-tf="${p.id}" title="${esc(p.name)}">${av(p.id, 'sm', 'idle')}</button>`).join('')}</div>`;
+  const mine = tasks.filter(t => (!tf || t.p === tf) && t.s <= S.i);
+  const now = mine.filter(t => t.e == null || t.e > S.i), done = mine.filter(t => t.e != null && t.e <= S.i);
+  const card = t => { const tk = D.tickets[t.ticket]; return `<div class="tk">${av(t.p, 'sm', 'idle')}<div><b>${esc(P[t.p].name)} · ${esc(t.role)}</b><span>${esc(tk.name)}</span><br><span class="mono" style="font-size:11px">第 ${t.s + 1} 步起${t.e != null ? ' · 第 ' + (t.e + 1) + ' 步交出' : ''}</span></div></div>`; };
+  const col = (t, c, list) => `<div class="col"><h5><span class="chip ${c}">${t}</span><em>${list.length}</em></h5>${list.map(card).join('') || '<span class="note">没有</span>'}</div>`;
+  $('#pane').className = 'pane pad'; $('#pane').innerHTML = `<p class="tdesc">每个人在这一步手上有什么、已经交出什么。按单子的接力名单整理，不含「评论」这类顺手的发言。</p>${fl}<div class="board">${col('● Now · 手上有', 'v', now)}${col('✓ Done · 已交出', 'ok', done)}</div>`;
+}
+function renderProgress() {
+  const G = PRESENTATION.progress || { items: [] };
+  const card = it => `<article class="pitem${it.stale ? ' stale' : ''}"><div class="ph"><h3>${esc(it.topic)}</h3><div class="ptags"><span class="ptag s-${esc(it.status)}">${esc(it.status_name)}</span>${it.stale ? `<span class="ptag s-stale">${esc(it.stale_text)}</span>` : ''}<span class="ptag">${esc(it.scope_name)}</span></div></div>${it.note ? `<p>${esc(it.note)}</p>` : ''}<dl>${it.next ? `<dt>${esc(G.labels.next)}</dt><dd>${esc(it.next)}</dd>` : ''}<dt>${esc(G.labels.owner)}</dt><dd><b class="${it.owner_unknown ? 'unk' : ''}">${esc(it.owner)}</b>${it.basis ? ` <span class="pbasis">${esc(it.basis)}</span>` : ''}</dd>${it.last ? `<dt>${esc(G.labels.last)}</dt><dd>${esc(it.last)}</dd>` : ''}</dl><details><summary>${esc(G.labels.evidence)} (${it.evidence.length})</summary>${it.evidence.map(e => `<blockquote>${esc(e.quote)}<small>${esc(e.who)} · ${esc(e.when)}</small></blockquote>`).join('')}</details></article>`;
+  $('#pane').className = 'pane pad';
+  $('#pane').innerHTML = `<div class="story-board"><h2>${esc(G.labels.title)}</h2><p class="tdesc">${esc(G.labels.intro)}</p>${G.items.map(card).join('') || `<p class="tdesc">${esc(G.labels.empty)}</p>`}<p class="tdesc pfoot">${esc(G.labels.foot)}</p></div>`;
+}
+function renderConn() {
+  if (PRESENT) {
+    const cards = (PRESENTATION.channels || []).map(c => `<article class="channel-card"><span class="channel-name">${esc(c.name)}</span><h3>${esc(c.title)}</h3><p>${esc(c.text)}</p></article>`).join('');
+    $('#pane').className = 'pane pad'; $('#pane').innerHTML = `<div class="story-board"><h2>${esc(PU.channelsTitle)}</h2><p class="tdesc">${esc(PU.channelsIntro)}</p><div class="channel-grid">${cards}</div></div>`;
+    return;
+  }
+  const c = sysCount(N - 1), word = { ok: ['ok', '✓ Working'], limited: ['warn', '◐ Limited'], planned: ['no', '○ Planned'] };
+  $('#pane').className = 'pane pad';
+  $('#pane').innerHTML = `<div class="cgrid">${D.sources.map(s => `<div class="cc"><span class="chip ${word[s.status][0]}">${word[s.status][1]}</span><h3>${esc(s.head)}</h3><ul>${s.pts.map(x => `<li>${esc(x)}</li>`).join('')}</ul><div class="use">${esc(M.no)}: ${c[s.id] ? '读到 ' + c[s.id] + ' 条事件' : 'not used'}</div></div>`).join('')}</div>
+    <h3 style="margin:18px 2px 8px;font-size:14px">数据说明</h3>${D.checks.map(k => `<div class="co${k.level === 'warn' ? '' : ''}" style="${k.level === 'warn' ? '' : 'background:rgba(255,255,255,.04);border-color:var(--line)'}"><b style="${k.level === 'warn' ? '' : 'color:var(--dim)'}">${esc(k.title)}</b>${esc(k.text)}</div>`).join('')}`;
+}
+function renderAcc() {
+  if (PRESENT) {
+    const people = D.people.filter(p => p.kind === 'human').map(p => `<article class="person-card"><div class="person-head">${av(p.id, 'sm', 'idle')}<b>${esc(p.name)}</b></div><p>${esc(p.role)}</p></article>`).join('');
+    $('#pane').className = 'pane pad'; $('#pane').innerHTML = `<div class="story-board"><h2>${esc(PU.peopleTitle)}</h2><p class="tdesc">${esc(PU.peopleIntro)}</p><div class="people-grid">${people}</div></div>`;
+    return;
+  }
+  $('#pane').className = 'pane pad';
+  $('#pane').innerHTML = `<p class="tdesc">本案参与人员、岗位与承担职责。</p>
+    <div class="people-table-wrap"><table class="tb"><thead><tr><th>同事</th><th>岗位</th><th>本案职责</th><th>本案贡献</th></tr></thead><tbody>${D.people.filter(p => p.kind === 'human').map(p => `<tr><td><div class="who">${av(p.id, 'sm', 'idle')}${esc(p.name)}</div></td><td>${esc(p.job_title || '—')}</td><td>${(p.responsibilities || []).map(r => `<span class="chip v">${esc(r)}</span>`).join(' ') || '—'}</td><td>${esc(p.role)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+
+/* 右侧：证据 */
+/* evidence chart, drawn at the plot's real pixel width like the original's, so its 10px labels stay 10px */
+// date labels along the bottom, thinned to about one per 62px so they never run into each other
+function xLabels(W, n, xs, lb, H) {
+  const per = Math.max(1, Math.ceil(n / Math.max(2, Math.floor((W - 90) / 62)))), at = [];
+  for (let k = 0; k < n; k += per) at.push(k);
+  if (at[at.length - 1] !== n - 1) { if (n - 1 - at[at.length - 1] < per * .8) at[at.length - 1] = n - 1; else at.push(n - 1); }
+  return at.map(k => `<text class="ax" x="${xs(k).toFixed(1)}" y="${H - 6}" text-anchor="${k === n - 1 && n > 1 ? 'end' : k === 0 ? 'start' : 'middle'}">${lb(k)}</text>`).join('');
+}
+function evPlot(W) {
+  const X = PRESENTATION.metrics;
+  W = Math.max(240, Math.floor(W || 480)); const H = Math.max(118, Math.min(190, Math.round(W * .36)));
+  if (X && X.dates && X.dates.length) {
+    const n = X.dates.length, ml = 48, mr = 42, mt = 12, mb = 22, pw = W - ml - mr, ph = H - mt - mb, bw = pw / n;
+    const smax = Math.max(1, ...X.spend.map(v => v || 0)), imax = Math.max(1, ...X.installs.map(v => v || 0));
+    const ys = v => mt + ph * (1 - v / smax), yi = v => mt + ph * (1 - v / imax), xc = k => ml + (k + .5) * bw;
+    const ci = X.dates.filter(d => d <= E[S.i].ts.slice(0, 10)).length - 1;
+    const money = v => '$' + (v >= 1e4 ? Math.round(v / 1000) + 'k' : v >= 1000 ? (v / 1000).toFixed(1).replace(/\.0$/, '') + 'k' : Math.round(v));
+    let s = [0, .5, 1].map(f => `<line class="gl" x1="${ml}" x2="${W - mr}" y1="${ys(smax * f).toFixed(1)}" y2="${ys(smax * f).toFixed(1)}"/><text class="ax" x="${ml - 7}" y="${(ys(smax * f) + 3.5).toFixed(1)}" text-anchor="end">${money(smax * f)}</text><text class="ax r" x="${W - mr + 7}" y="${(yi(imax * f) + 3.5).toFixed(1)}">${Math.round(imax * f)}</text>`).join('');
+    X.spend.forEach((v, k) => { if (v) s += `<rect x="${(ml + k * bw + bw * .15).toFixed(1)}" y="${ys(v).toFixed(1)}" width="${Math.max(.8, bw * .7).toFixed(1)}" height="${Math.max(1, ys(0) - ys(v)).toFixed(1)}" rx="1" fill="${k <= ci ? '#7C5CFF' : 'rgba(124,92,255,.28)'}"><title>${X.dates[k]} · ${esc(PU.spendLabel || '')} ${money(v)} · ${esc(PU.installsLabel || '')} ${X.installs[k] == null ? '—' : X.installs[k]}</title></rect>`; });
+    let d = '', pen = false;
+    X.installs.forEach((v, k) => { if (v == null) { pen = false; return; } d += (pen ? 'L' : 'M') + xc(k).toFixed(1) + ',' + yi(v).toFixed(1); pen = true; });
+    s += `<path d="${d}" fill="none" stroke="#22D3EE" stroke-width="1.6" stroke-linejoin="round"/>`;
+    if (ci >= 0) s += `<line x1="${xc(ci).toFixed(1)}" x2="${xc(ci).toFixed(1)}" y1="${mt - 6}" y2="${ys(0).toFixed(1)}" stroke="#FBBF24" stroke-width="1.4" stroke-dasharray="3 3"/>`;
+    s += xLabels(W, n, xc, k => X.dates[k].slice(5).replace('-', '/'), H);
+    return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(PU.metricsTitle || '')}">${s}</svg>`;
+  }
+  return marginPlot(W);
+}
+// margin changes as bars at the plot's real pixel width; when the bars get too narrow for a value over each one,
+// only the latest value is written (every bar still shows its date and value on hover). now: mark the replay's position
+function marginPlot(W, now) {
+  const pts = E.map((e, i) => [e, i]).filter(([e]) => e.margin != null);
+  if (!pts.length) return '';
+  W = Math.max(160, Math.floor(W || 480)); const H = Math.max(118, Math.min(190, Math.round(W * .36)));
+  const n = pts.length, ml = 40, mr = 12, mt = 16, mb = 22, pw = W - ml - mr, ph = H - mt - mb, bw = pw / n, xc = k => ml + (k + .5) * bw;
+  const max = Math.max(10, Math.ceil(Math.max(...pts.map(([e]) => e.margin)) / 10) * 10), y = v => mt + ph * (1 - v / max), w = Math.min(28, bw * .6);
+  const last = pts.reduce((a, [, i], k) => i <= S.i ? k : a, -1), every = bw >= 15;
+  let s = [0, .5, 1].map(f => `<line class="gl" x1="${ml}" x2="${W - mr}" y1="${y(max * f).toFixed(1)}" y2="${y(max * f).toFixed(1)}"/><text class="ax" x="${ml - 7}" y="${(y(max * f) + 3.5).toFixed(1)}" text-anchor="end">${Math.round(max * f)}%</text>`).join('');
+  pts.forEach(([e, i], k) => { const on = i <= S.i; s += `<rect x="${(xc(k) - w / 2).toFixed(1)}" y="${y(e.margin).toFixed(1)}" width="${w.toFixed(1)}" height="${Math.max(1, y(0) - y(e.margin)).toFixed(1)}" rx="2" fill="${on ? '#7C5CFF' : 'rgba(124,92,255,.28)'}"><title>${fmt(e.ts).md.replace('-', '/')} · ${e.margin}%</title></rect>${every || k === last ? `<text class="${on ? 'vl' : 'ax'}" x="${xc(k).toFixed(1)}" y="${(y(e.margin) - 4).toFixed(1)}" text-anchor="middle">${e.margin}</text>` : ''}`; });
+  if (now && last >= 0) s += `<line x1="${xc(last).toFixed(1)}" x2="${xc(last).toFixed(1)}" y1="${mt - 6}" y2="${y(0).toFixed(1)}" stroke="#22D3EE" stroke-width="1.4" stroke-dasharray="3 3"/>`;
+  s += xLabels(W, n, xc, k => fmt(pts[k][0].ts).md.replace('-', '/'), H);
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(PU.marginTitle || '利润率走势')}">${s}</svg>`;
+}
+function renderEvid() {
+  if (PRESENT) {
+    // like the original: evidence belongs to the council tab only; a column beside the stage on wide screens, else a block that folds
+    const strip = $('#evstrip'), show = S.tab === 'council';
+    strip.hidden = !show; $('.center').classList.toggle('with-ev', show);
+    if (!show) return;
+    const summary = D.summary || '', X = PRESENTATION.metrics, hasM = !!(X && X.dates && X.dates.length), cur = E[S.i].ts.slice(0, 10);
+    const pts = E.map((e, i) => [e, i]).filter(([e]) => e.margin != null), top = Math.max(1, ...pts.map(([e]) => e.margin));
+    const open = matchMedia('(min-width:1760px)').matches || !!S.evx;
+    let spark = '';
+    if (hasM) {
+      const sm = Math.max(1, ...X.spend.map(v => v || 0)), w = Math.min(150, X.dates.length * 2), bw = w / X.dates.length;
+      spark = `<svg width="${w}" height="22" aria-hidden="true">${X.spend.map((v, k) => v ? `<rect x="${(k * bw).toFixed(1)}" y="${(22 - Math.max(1, v / sm * 20)).toFixed(1)}" width="${Math.max(.8, bw - .3).toFixed(1)}" height="${Math.max(1, v / sm * 20).toFixed(1)}" fill="${X.dates[k] <= cur ? '#7C5CFF' : 'rgba(124,92,255,.28)'}"/>` : '').join('')}</svg>`;
+    } else if (pts.length) {
+      spark = `<svg width="${pts.length * 7}" height="22" aria-hidden="true">${pts.map(([e, i], k) => `<rect x="${k * 7}" y="${22 - Math.max(2, e.margin / top * 20)}" width="5" height="${Math.max(2, e.margin / top * 20)}" rx="1" fill="${i <= S.i ? '#7C5CFF' : 'rgba(124,92,255,.28)'}"/>`).join('')}</svg>`;
+    }
+    const sub = (hasM ? `${X.dates[0].slice(5).replace('-', '/')} – ${X.dates[X.dates.length - 1].slice(5).replace('-', '/')} ${PU.metricsTitle}` : '') + (pts.length ? `${hasM ? ' · ' : ''}${PU.marginTitle} ${pts.length}` : '');
+    const fig = hasM || pts.length ? `<figure class="evc"><figcaption class="cap">${esc(hasM ? PU.metricsTitle : PU.marginTitle)}</figcaption><div class="plot" id="evplot"></div>${hasM ? `<div class="lgd"><span><i style="background:#7C5CFF"></i>${esc(PU.spendLabel || '')}</span><span><i style="background:#22D3EE;height:3px;vertical-align:3px"></i>${esc(PU.installsLabel || '')}</span></div><p class="note">${esc(PU.metricsContext)}</p>` : ''}</figure>` : '';
+    const tbl = pts.length ? `<div class="evt"><div class="cap">${esc(PU.marginTitle)} · ${pts.length}</div><div class="tw"><table><thead><tr><th>${esc(PU.evDate)}</th><th class="n">${esc(PU.evMargin)}</th><th>${esc(PU.evWho)}</th><th>${esc(PU.evWhat)}</th></tr></thead><tbody>${pts.map(([e, i]) => `<tr class="${i === S.i ? 'cur' : (i > S.i ? 'fut' : '')}"><td class="n">${fmt(e.ts).md.replace('-', '/')}</td><td class="n">${e.margin}%</td><td>${esc(P[e.actor].short)}</td><td>${esc(e.title)}</td></tr>`).join('')}</tbody></table></div><p class="note">${esc(PU.marginContext)}</p></div>` : '';
+    strip.className = 'evstrip' + (open ? '' : ' collapsed');
+    strip.innerHTML = `<div class="evh"><span class="lb">${esc(PU.evidenceLabel || 'EVIDENCE')}</span><span class="es">${esc(sub)}</span><span class="spark">${spark}</span><span class="cnt">${S.i + 1} / ${N} ${esc(PU.steps || '')}</span><button class="evtg" id="evx" aria-expanded="${open}">${esc(open ? PU.collapse : PU.expand)}</button></div>` +
+      (fig || tbl ? `<div class="evb${fig && tbl ? '' : ' one'}">${fig}${tbl}</div>` : '') +
+      (summary ? `<p class="read"><b>${esc(PU.readLabel)}</b>${esc(summary)}</p>` : '');
+    const plot = $('#evplot');
+    if (open && plot) plot.innerHTML = evPlot(plot.clientWidth);
+    return;
+  }
+  const mg = marginAfter[S.i], c = sysCount(S.i), reads = Object.values(c).reduce((a, b) => a + b, 0);
+  $('#evid').innerHTML = `<div class="eh"><span>EVIDENCE</span><span><b>${reads}</b> / ${N} reads</span></div>
+    <div class="et">${esc(M.no)} · 利润率调整（${D.events.filter(e => e.margin != null).length} 次）</div>
+    <div class="plot" id="evplot"></div>
+    <div class="lgd"><span><i style="background:#7C5CFF"></i>已发生的调整</span><span><i style="background:rgba(124,92,255,.3)"></i>还没到的</span><span><i style="background:#22D3EE"></i>此刻</span></div>
+    <div class="et">各来源说了什么</div>
+    <div class="tw"><table><thead><tr><th>SOURCE</th><th>WHAT IT SAYS</th></tr></thead><tbody>${D.evidence_rows.map(r => `<tr><td>${esc(r[0])}</td><td>${esc(r[1])}</td></tr>`).join('')}</tbody></table></div>
+    <p class="note">以上都是读到的内容，没有用到谁的评价或猜测；第二幕里「接下来」的部分除外，已单独标出。</p>
+    <div class="read"><b>Council read:</b> ${esc(D.summary)}<div class="m">${N} steps · ${D.events.filter(e => e.flag === 'problem').length} problem · ${D.events.filter(e => e.flag === 'caution').length} caution · 0 writes</div></div>`;
+  const pl = $('#evplot'); pl.innerHTML = marginPlot(pl.clientWidth, true);
+}
+
+/* 右侧：详情 */
+function renderInsp() {
+  if (PRESENT) {
+    const id = S.focus || E[S.i].actor, p = P[id];
+    const involved = E.map((e, i) => [e, i]).filter(([e, i]) => i <= S.i && (e.actor === id || (e.to || []).includes(id)));
+    const k = lastOf(id), closed = new Set(), tk = {};
+    E.forEach((e, i) => { if (i <= S.i && e.src === 'github' && e.kind === 'close') closed.add(e.presentation_tag); });
+    E.forEach((e, i) => {
+      if (i > S.i || e.actor !== id) return;
+      if (e.src === 'github' && e.kind === 'assign') tk[e.presentation_tag] = { tag: e.presentation_tag, sub: '', done: closed.has(e.presentation_tag) };
+      if (e.src === 'hubspot' && e.kind === 'create') tk[e.presentation_tag] = { tag: e.presentation_tag, sub: (e.title || '').replace(/^[^:：]*[:：]\s*/, ''), status: e.ticket_status };
+    });
+    const tks = Object.values(tk);
+    const chip = t => t.status ? `<span class="chip ${/complet|closed|resolved/i.test(t.status) ? 'ok' : 'v'}">${esc(t.status)}</span>` : `<span class="chip ${t.done ? 'ok' : 'v'}">${t.done ? '✓ ' + esc(PU.ticketDone) : '● ' + esc(PU.ticketOpen)}</span>`;
+    $('#insp').innerHTML = `<div class="ih">${av(id, 'lg', 'idle')}<div><h3>${esc(p.name)}</h3><div class="r">${esc(p.role)}</div><div style="margin-top:4px"><span class="tag g-${esc(p.group || 'team')}">${esc(p.tag || PU.personTag)}</span></div></div></div>
+      <div class="tn2" style="margin-top:12px"><span>${esc(PU.nowLabel)}</span><b>${esc(k < 0 ? PU.notYet : E[k].title)}</b></div>
+      ${tks.length ? `<div class="sh">${esc(PU.ticketsTitle)} · ${tks.length}</div>${tks.map(t => `<div class="tl1">${chip(t)}<b>${esc(t.tag)}</b>${t.sub ? `<small>${esc(t.sub)}</small>` : ''}</div>`).join('')}` : ''}
+      <div class="sh">${esc(PU.contributionTitle)} · ${involved.length}</div>${involved.slice(-6).map(([e, i]) => `<div class="kv"><b class="mono">${pad(i + 1)}</b> ${esc(e.title)}</div>`).join('') || `<div class="kv">${esc(PU.noRecentContribution)}</div>`}`;
+    return;
+  }
+  const id = S.focus || E[S.i].actor, p = P[id], [st, tx] = pstate(id);
+  const my = tasks.filter(t => t.p === id && t.s <= S.i);
+  const involved = E.map((e, i) => [e, i]).filter(([e, i]) => i <= S.i && (e.actor === id || (e.to || []).includes(id)));
+  const responsibilities = (p.responsibilities || []).map(r => `<span class="chip v">${esc(r)}</span>`).join(' ') || '—';
+  const title = p.job_title || (p.kind === 'bot' ? '系统' : '同事');
+  $('#insp').innerHTML = `<div class="ih">${av(id, 'lg', st)}<div><h3>${esc(p.name)}</h3><div class="r">${esc(title)}</div><div style="margin-top:4px"><span class="tag ${p.kind === 'bot' ? '' : 'h'}">${p.kind === 'bot' ? '机器人' : (p.external ? '合作方' : '同事')}</span></div></div></div>
+    <div class="tn2"><span>当前状态</span><b>${esc(tx)}</b></div>
+    <div class="sh">本案职责</div><div class="kv">${responsibilities}</div>
+    <div class="sh">本案贡献</div><div class="kv">${esc(p.role)}</div>
+    <div class="sh">经手任务</div>
+    ${my.map(t => { const done = t.e != null && t.e <= S.i; return `<div class="tl1"><span class="chip ${done ? 'ok' : 'v'}">${done ? '✓ 完成' : '● 进行中'}</span><b>${esc(t.role)}</b><small>${esc(D.tickets[t.ticket].name)}</small></div>`; }).join('') || '<div class="kv">本案没有关联的指派任务。</div>'}
+    <div class="sh">参与历程 · ${involved.length} 次</div>
+    ${involved.slice(-6).map(([e, i]) => `<div class="kv"><b class="mono">${pad(i + 1)}</b> ${esc(e.title)}</div>`).join('')}`;
+}
+
+/* 底部条 */
+function renderWait() {
+  if (PRESENT) {
+    const G = PRESENTATION.progress, it = G && G.items && G.items[0];
+    if (it) {
+      $('#wait').className = 'wait waiting';
+      $('#wait').innerHTML = `<span class="bd">${esc(PU.waitingLabel)} · ${G.items.length}</span><div class="tx"><b>${esc(it.topic)}</b><br>${it.next ? `${esc(G.labels.next)}：${esc(it.next)}　` : ''}${esc(PU.ownerLabel)}：<b>${esc(it.owner)}</b></div><button class="btn primary" id="prg">${esc(PU.progressButton)}</button><button class="btn" id="det">${esc(PU.peopleButton)}</button>`;
+      return;
+    }
+    const e = E[S.i];
+    $('#wait').className = 'wait';
+    $('#wait').innerHTML = `<span class="bd">${esc(e.presentation_tag || PU.updateLabel)}</span><div class="tx"><b>${esc(e.title)}</b>${e.presentation_context ? `<br>${esc(e.presentation_context)}` : ''}</div><button class="btn" id="det">${esc(PU.peopleButton)}</button>`;
+    return;
+  }
+  const hold = holdAfter[S.i], names = Object.entries(hold);
+  const last = S.i === N - 1, w = D.watch;
+  const who = names.length ? names.map(([p, r]) => `${P[p].short}（${r}）`).join('、') : '此刻没有人手上有单子';
+  $('#wait').className = 'wait' + (last ? ' waiting' : '');
+  $('#wait').innerHTML = `<span class="bd">${esc(w.label || (last ? 'STILL OPEN' : 'NOW'))}</span><div class="tx"><b>${last ? esc(w.head) : '第 ' + (S.i + 1) + ' 步：手上有单子的人'}</b><br>${last ? esc(w.text) + '　手上有单子：' + esc(who) : esc(who)}</div><button class="btn" id="det">看这一步的人</button>`;
+}
+
+/* 总控 */
+function initPanelLayout() {
+  if (PRESENT) return;
+  const app = $('.app'), main = $('#main'), panels = ['roster', 'evid', 'insp'];
+  const names = { roster: ['同事栏', 'Colleagues panel'], evid: ['业务摘要栏', 'Campaign summary panel'], insp: ['人员详情栏', 'People details panel'] };
+  const limits = { roster: [140, 460], evid: [210, 520], insp: [190, 460] };
+  const key = 'feedmob.replay.panel-layout.v1';
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (_) {}
+  const state = { widths: {}, collapsed: {} };
+  const currentWidth = panel => {
+    const value = parseFloat(getComputedStyle(app).getPropertyValue(`--${panel}-w`));
+    return Number.isFinite(value) && value > 0 ? value : ({ roster: 220, evid: 300, insp: 270 }[panel]);
+  };
+  const applyWidth = (panel, width) => {
+    const [min, max] = limits[panel];
+    state.widths[panel] = Math.max(min, Math.min(max, Math.round(width)));
+    if (!state.collapsed[panel]) app.style.setProperty(`--${panel}-w`, `${state.widths[panel]}px`);
+  };
+  const save = () => { try { localStorage.setItem(key, JSON.stringify(state)); } catch (_) {} };
+  const setCollapsed = (panel, collapsed, persist = true) => {
+    state.collapsed[panel] = !!collapsed;
+    app.classList.toggle(`${panel}-collapsed`, !!collapsed);
+    app.style.setProperty(`--${panel}-w`, collapsed ? '0px' : `${state.widths[panel]}px`);
+    const button = $(`[data-collapse="${panel}"]`);
+    const arrow = panel === 'roster' ? (collapsed ? '›' : '‹') : (collapsed ? '‹' : '›');
+    button.textContent = arrow;
+    button.setAttribute('aria-expanded', String(!collapsed));
+    const en = document.documentElement.lang === 'en';
+    const action = collapsed ? '展开' : '收起';
+    button.setAttribute('aria-label', `${action}${names[panel][en ? 1 : 0]}`);
+    if (persist) save();
+  };
+  panels.forEach(panel => {
+    const stored = Number(saved.widths && saved.widths[panel]);
+    state.collapsed[panel] = false;
+    applyWidth(panel, Number.isFinite(stored) && stored > 0 ? stored : currentWidth(panel));
+  });
+  panels.forEach(panel => setCollapsed(panel, !!(saved.collapsed && saved.collapsed[panel]), false));
+  main.addEventListener('click', event => {
+    const button = event.target.closest('[data-collapse]');
+    if (!button) return;
+    event.stopPropagation();
+    const panel = button.dataset.collapse;
+    setCollapsed(panel, !state.collapsed[panel]);
+  });
+  main.querySelectorAll('.resize-handle[data-resize]').forEach(handle => {
+    const panel = handle.dataset.resize;
+    handle.addEventListener('pointerdown', event => {
+      if (event.target.closest('button') || (window.innerWidth <= 1000 && panel !== 'roster')) return;
+      event.preventDefault();
+      if (state.collapsed[panel]) setCollapsed(panel, false, false);
+      const startX = event.clientX, startWidth = state.widths[panel];
+      const sign = panel === 'roster' ? 1 : -1;
+      app.classList.add('is-resizing');
+      handle.setPointerCapture(event.pointerId);
+      const move = e => {
+        const other = panels.filter(p => p !== panel && !state.collapsed[p]).reduce((sum, p) => sum + state.widths[p], 0);
+        const minCenter = window.innerWidth <= 1000 ? 280 : 360;
+        const maxWidth = Math.max(limits[panel][0], main.clientWidth - minCenter - 54 - other);
+        applyWidth(panel, Math.min(maxWidth, startWidth + (e.clientX - startX) * sign));
+      };
+      const end = () => { app.classList.remove('is-resizing'); save(); handle.removeEventListener('pointermove', move); handle.removeEventListener('pointerup', end); };
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', end, { once: true });
+      handle.addEventListener('lostpointercapture', end, { once: true });
+    });
+    handle.addEventListener('dblclick', () => { applyWidth(panel, ({ roster: 220, evid: 300, insp: 270 })[panel]); setCollapsed(panel, false); });
+    handle.addEventListener('keydown', event => {
+      if (event.key === 'Home' || event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setCollapsed(panel, !state.collapsed[panel]); return; }
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+      event.preventDefault();
+      const sign = panel === 'roster' ? 1 : -1;
+      const delta = (event.key === 'ArrowRight' ? 12 : -12) * sign;
+      setCollapsed(panel, false, false); applyWidth(panel, state.widths[panel] + delta); save();
+    });
+  });
+}
+function fitPresentationPane() {
+  const pane = $('#pane');
+  pane.classList.toggle('fit-content', PRESENT && !(S.tab === 'council' && S.view === '3d'));
+}
+function renderCenter() {
+  if (PRESENT) renderEvid();  // the evidence column decides how wide the stage is, so it goes first
+  buildTabs(); buildSub();
+  if (S.tab === 'council') { if (S.view === 'ladder') buildLadder(); else if (S.view === 'thread') renderThread(); else if (S.view === '3d') render3d(); else renderLog(); }
+  else if (S.tab === 'tasks') renderTasks(); else if (S.tab === 'conn') renderConn(); else if (S.tab === 'progress') renderProgress(); else renderAcc();
+  updMail(); if (S.tab === 'council' && S.view === 'ladder') updLadder(false);
+  fitPresentationPane();
+  if (S.tab !== 'council') $('#pane').scrollTop = 0;
+}
+function writeHash() { const h = new URLSearchParams({ i: S.i + 1, t: S.tab, v: S.view, tz: S.tz }); if (S.focus) h.set('p', S.focus); history.replaceState(null, '', '#' + h); }
+function scrollCur(smooth) {
+  if (!S.follow) return; const pane = $('#pane'); let el = null;
+  if (S.view === 'ladder' && S.tab === 'council') el = $(`.lrow[data-i="${S.i}"]`, pane); else if (S.view === 'thread' && S.tab === 'council') el = $(`.msg[data-i="${S.i}"]`, pane); else if (S.view === 'log' && S.tab === 'council') el = $(`.lg1[data-i="${S.i}"]`, pane);
+  if (el) {
+    // bottom-align the step so earlier ones stay in view, but never let its start slip under the sticky header
+    const head = $('.lhd, .thh', pane), top = el.offsetTop - (head ? head.offsetHeight : 0) - 8;
+    pane.scrollTo({ top: Math.min(el.offsetTop + el.offsetHeight - pane.clientHeight + 24, top), behavior: smooth ? 'smooth' : 'auto' });
+  }
+}
+function go(i, o) {
+  o = o || {}; S.i = Math.max(0, Math.min(N - 1, i)); S.focus = o.keepFocus ? S.focus : null;
+  updCtl(); updRoster(); renderEvid(); renderInsp(); renderWait(); updMail();
+  if (S.tab === 'council' && S.view === 'ladder') updLadder(); else if (S.tab === 'council' || S.tab === 'tasks' || S.tab === 'conn') { const t = $('#pane').scrollTop; renderCenterBody(); $('#pane').scrollTop = t; }
+  writeHash(); scrollCur(!!o.smooth);
+}
+function renderCenterBody() {
+  if (S.tab === 'council') { if (S.view === 'thread') renderThread(); else if (S.view === 'log') renderLog(); else if (S.view === '3d') update3d(); }
+  else if (S.tab === 'tasks') renderTasks(); else if (S.tab === 'conn') renderConn();
+  fitPresentationPane();
+}
+function play() { if (S.playing) return; if (S.i >= N - 1) go(0); S.playing = true; updCtl(); S.follow = true; window.__replay3DPlayback(S.speed, true); S.timer = setInterval(() => { if (S.i >= N - 1) { pause(); return; } go(S.i + 1, { smooth: true }); }, 1900 / S.speed); }
+function pause() { if (S.timer) clearInterval(S.timer); S.timer = null; S.playing = false; window.__replay3DPlayback(S.speed, false); updCtl(); }
+function setFocus(p) { S.focus = S.focus === p ? null : p; updRoster(); renderInsp(); if (S.tab === 'council' && S.view === 'ladder') updLadder(); writeHash(); }
+window.__replay3DGo = i => go(i, { keepFocus: true, smooth: true });
+window.__replay3DFocus = p => setFocus(p);
+window.__replay3DPlayback = (speed, playing) => {
+  const frame = $('#scene3d-frame', $('#pane')), w = frame && frame.contentWindow;
+  if (w && w.setReplayPlayback) w.setReplayPlayback(speed, playing);
+};
+
+function render3d() {
+  const pane = $('#pane'); pane.className = 'pane';
+  let frame = $('#scene3d-frame', pane);
+  if (!frame) {
+    frame = document.createElement('iframe');
+    frame.id = 'scene3d-frame'; frame.title = '3D replay';
+    frame.style.cssText = 'display:block;width:100%;height:100%;min-height:560px;border:0;background:#05060f';
+    pane.replaceChildren(frame);
+    frame.dataset.tz = S.tz === 'bj' ? 'Asia/Shanghai' : 'UTC';
+    frame.addEventListener('load', () => {
+      const w = frame.contentWindow;
+      if (!w || !w.setReplayStep) return;
+      if (w.setReplayPlayback) w.setReplayPlayback(S.speed, S.playing);
+      w.setReplayTimezone(frame.dataset.tz);
+      w.setReplayStep(S.i);
+    }, { once: true });
+    frame.srcdoc = JSON.parse($('#scene-data').textContent);
+  }
+  update3d();
+}
+function update3d() {
+  const frame = $('#scene3d-frame', $('#pane'));
+  const w = frame && frame.contentWindow;
+  if (!w || !w.setReplayStep) return;
+  const tz = S.tz === 'bj' ? 'Asia/Shanghai' : 'UTC';
+  if (frame.dataset.tz !== tz) { frame.dataset.tz = tz; w.setReplayTimezone(tz); }
+  w.setReplayStep(S.i);
+}
+
+const RM_Q = '搜索活动名称或 click URL ID';
+function roomMenu(items, cur, lang, det) {
+  // the room pill as a menu of every campaign (name + click URL ID, as the business team reads them); typing filters it
+  const room = $('#top .room');
+  if (!room) return;
+  const url = c => `/c/${c.id}/${lang}${det || ''}`, ids = c => (c.links || []).map(x => '#' + x).join(' ');
+  let last = '', rows = '';
+  items.forEach(c => {
+    const name = String(c.name), g = name.split('_')[0];
+    if (g !== last) { rows += `<div class="rmg" data-g="${esc(g)}">${esc(g)}</div>`; last = g; }
+    rows += `<a class="rmi${c.id === cur ? ' on' : ''}" role="option" aria-selected="${c.id === cur}" href="${url(c)}" data-g="${esc(g)}" data-k="${esc((name + ' ' + ids(c)).toLowerCase())}"><span class="nm">${esc(name)}</span>${ids(c) ? `<code>${esc(ids(c))}</code>` : ''}</a>`;
+  });
+  const menu = document.createElement('div');
+  menu.className = 'roommenu'; menu.hidden = true;
+  menu.innerHTML = `<input class="rmq" type="search" placeholder="${esc(RM_Q)}" aria-label="${esc(RM_Q)}"><div class="rml" role="listbox">${rows}</div>`;
+  document.body.appendChild(menu);
+  const q = $('.rmq', menu), shown = () => $$('.rmi:not([hidden])', menu);
+  const filter = v => {
+    const t = v.trim().toLowerCase().replace(/^#/, '');
+    $$('.rmi', menu).forEach(a => { a.hidden = !!t && !a.dataset.k.includes(t); });
+    $$('.rmg', menu).forEach(h => { h.hidden = !$$(`.rmi[data-g="${CSS.escape(h.dataset.g)}"]:not([hidden])`, menu).length; });
+  };
+  const open = () => {
+    const r = room.getBoundingClientRect();
+    menu.style.left = r.left + 'px'; menu.style.top = (r.bottom + 6) + 'px';
+    menu.style.width = Math.min(Math.max(r.width, 460), innerWidth - r.left - 16) + 'px';
+    q.value = ''; filter(''); menu.hidden = false; room.setAttribute('aria-expanded', 'true'); q.focus();
+    const on = $('.rmi.on', menu); if (on) on.scrollIntoView({ block: 'nearest' });
+  };
+  const close = () => { menu.hidden = true; room.setAttribute('aria-expanded', 'false'); };
+  room.classList.add('pick'); room.tabIndex = 0;
+  room.setAttribute('role', 'button'); room.setAttribute('aria-haspopup', 'listbox'); room.setAttribute('aria-expanded', 'false');
+  room.insertAdjacentHTML('beforeend', '<i class="caret" aria-hidden="true">▾</i>');
+  room.addEventListener('click', () => menu.hidden ? open() : close());
+  room.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); e.stopPropagation(); open(); } });
+  q.addEventListener('input', () => filter(q.value));
+  menu.addEventListener('keydown', e => {
+    e.stopPropagation();  // keys typed here are not the replay's shortcuts
+    const list = shown(), at = list.indexOf(document.activeElement);
+    if (e.key === 'Escape') { close(); room.focus(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); (list[at + 1] || list[0] || q).focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); (at > 0 ? list[at - 1] : q).focus(); }
+    else if (e.key === 'Enter' && e.target === q && list.length) { e.preventDefault(); location.href = list[0].href; }
+  });
+  document.addEventListener('mousedown', e => { if (!menu.hidden && !menu.contains(e.target) && !room.contains(e.target)) close(); });
+  addEventListener('resize', close);
+}
+function buildJobs() {
+  const m = location.pathname.match(/^\/c\/(\d+)\/(en|zh)(\/detail)?\/?$/);
+  if (!m || !window.fetch) return;
+  const [, cur, lang, det] = m;
+  fetch('/campaigns.json', { credentials: 'same-origin' }).then(r => r.ok ? r.json() : []).then(list => {
+    // the original's job picker in the header: every campaign (the list comes sorted by name), grouped by advertiser and
+    // labelled by its click URL ID, which the business team knows campaigns by; the tooltip has the campaign name
+    const items = (list || []).filter(c => det ? c.detail : c.business);
+    if (items.length < 2) return;
+    const pk = $('#picker');
+    let last = '';
+    pk.innerHTML = items.map(c => {
+      const name = String(c.name), g = name.split('_')[0], head = g !== last ? `<span class="pg">${esc(g)}</span>` : ''; last = g;
+      const links = c.links || [], label = links.length ? '#' + links[0] + (links.length > 1 ? ' +' + (links.length - 1) : '') : c.id;
+      return head + `<a class="${c.id === cur ? 'on' : ''}" href="/c/${c.id}/${lang}${det || ''}" title="${esc(name + (links.length ? ' · #' + links.join(' #') : ''))}"${c.id === cur ? ' aria-current="page"' : ''}>${esc(label)}</a>`;
+    }).join('');
+    pk.hidden = false;
+    const on = $('a.on', pk); if (on) pk.scrollLeft = on.offsetLeft - (pk.clientWidth - on.offsetWidth) / 2;
+    roomMenu(items, cur, lang, det);
+  }).catch(() => {});
+}
+function readHash() {
+  const q = new URLSearchParams(location.hash.slice(1));
+  if (q.get('i')) S.i = Math.max(0, Math.min(N - 1, (+q.get('i') || N) - 1));
+  if (['council', 'tasks', 'conn', 'acc', 'progress'].includes(q.get('t'))) S.tab = q.get('t');
+  if (['ladder', 'thread', 'log', '3d'].includes(q.get('v'))) S.view = q.get('v');
+  if (q.get('tz') && TZ[q.get('tz')] != null) S.tz = q.get('tz');
+  if (q.get('p') && P[q.get('p')]) S.focus = q.get('p');
+}
+function init() {
+  if (PRESENT) $('.app').classList.add('presentation-mode');
+  initPanelLayout();
+  readHash();
+  buildTop(); buildJobs(); buildCtl(); buildCharter(); buildRoster();
+  if (PRESENT) $('#foot').textContent = PU.footer;
+  else $('#foot').textContent = `回放中的事件来自 GitHub、HubSpot、Slack、Gmail、Fireflies / Teams 会议和 FeedMob Admin 后台；仅展示已核实的动作，未发生的步骤单独标注。`;
+  $('#top').addEventListener('click', e => { const a = e.target.closest('[data-act]'); if (a) { pause(); const i = E.findIndex(x => x.act === a.dataset.act); go(i); return; } if (e.target.closest('#tzb')) { S.tz = S.tz === 'bj' ? 'utc' : 'bj'; updCtl(); renderCenter(); renderInsp(); renderEvid(); } });
+  $('#ctl').addEventListener('click', e => { if (e.target.closest('#play')) { S.playing ? pause() : play(); } if (e.target.closest('#jump')) { pause(); go(N - 1); } const sp = e.target.closest('#spd button'); if (sp) { S.speed = +sp.dataset.x; updCtl(); if (S.playing) { pause(); play(); } else window.__replay3DPlayback(S.speed, false); } });
+  $('#roster').addEventListener('click', e => { const m = e.target.closest('.mem'); if (m) setFocus(m.dataset.p); });
+  $('#evstrip').addEventListener('click', e => { if (e.target.closest('#evx')) { S.evx = !S.evx; renderEvid(); } });
+  $('#tabs').addEventListener('click', e => { const t = e.target.closest('.tab'); if (t) { S.tab = t.dataset.t; renderCenter(); scrollCur(false); writeHash(); } });
+  $('#sub').addEventListener('click', e => { const v = e.target.closest('[data-v]'); if (v) { S.view = v.dataset.v; renderCenter(); scrollCur(false); writeHash(); } });
+  $('#sub').addEventListener('change', e => { if (e.target.id === 'dimc') { S.dim = e.target.checked; if (S.view === 'ladder') updLadder(); } });
+  $('#pane').addEventListener('click', e => {
+    const lh = e.target.closest('.lh'); if (lh) { setFocus(lh.dataset.p); return; }
+    const tf = e.target.closest('[data-tf]'); if (tf) { S.tfocus = tf.dataset.tf || null; renderTasks(); return; }
+    if (e.target.closest('#follow')) { S.follow = true; scrollCur(true); $('#follow').style.display = 'none'; return; }
+    if (e.target.closest('a')) return;
+    const r = e.target.closest('[data-i]'); if (r) { pause(); go(+r.dataset.i); }
+  });
+  $('#pane').addEventListener('wheel', () => { if (S.playing) { S.follow = false; const f = $('#follow'); if (f) f.style.display = 'block'; } }, { passive: true });
+  $('#wait').addEventListener('click', e => {
+    if (e.target.closest('#prg')) { pause(); S.tab = 'progress'; renderCenter(); writeHash(); return; }
+    if (!e.target.closest('#det')) return;
+    S.focus = null;
+    if (PRESENT) {
+      pause(); S.tab = 'acc'; renderCenter(); updRoster(); writeHash();
+      $('#tabs [data-t="acc"]').focus();
+    }
+    renderInsp();
+  });
+  document.addEventListener('keydown', e => {
+    if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) || e.metaKey || e.ctrlKey) return;
+    if (e.key === ' ') { e.preventDefault(); S.playing ? pause() : play(); }
+    else if (e.key === 'ArrowRight' || e.key === '.') { e.preventDefault(); pause(); go(S.i + 1, { smooth: true }); }
+    else if (e.key === 'ArrowLeft' || e.key === ',') { e.preventDefault(); pause(); go(S.i - 1, { smooth: true }); }
+    else if (e.key === 'g' || e.key === 'G' || e.key === 'End') { e.preventDefault(); pause(); go(N - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); pause(); go(0); }
+  });
+  // Only the part after # changed (an edited or pasted link): the browser does not reload, so switch here.
+  addEventListener('hashchange', () => { pause(); readHash(); updCtl(); updRoster(); renderEvid(); renderInsp(); renderWait(); renderCenter(); requestAnimationFrame(() => scrollCur(false)); });
+  let rz = 0;
+  addEventListener('resize', () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(() => {
+    if (!PRESENT) return;
+    renderEvid();
+    if (S.tab === 'council' && S.view === 'ladder') { const t = $('#pane').scrollTop; buildLadder(); updLadder(false); $('#pane').scrollTop = t; }
+  }); });
+  if (window.ResizeObserver) {
+    new ResizeObserver(fitMail).observe($('#mail'));
+    let pw = 0;
+    if (!PRESENT) new ResizeObserver(() => { const pl = $('#evplot'); if (pl && pl.clientWidth !== pw) { pw = pl.clientWidth; pl.innerHTML = marginPlot(pw, true); } }).observe($('#evid'));
+  }
+  updCtl(); updRoster(); renderEvid(); renderInsp(); renderWait(); renderCenter();
+  requestAnimationFrame(() => scrollCur(false));
+}
+window.REPLAY = { go, play, pause, state: S, events: E };
+init();
+})();
+</script>
+</body>
+</html>
